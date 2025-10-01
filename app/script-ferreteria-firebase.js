@@ -202,6 +202,19 @@ class ControlFerreteriaFirebase {
             categoria: categoria || 'Sin categoría',
             cliente: cliente || 'Cliente general',
             fecha: new Date().toLocaleDateString(),
+            hora: new Date().toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false 
+            }),
+            fechaHora: new Date().toLocaleString('es-ES', {
+                day: '2-digit',
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            }),
             timestamp: serverTimestamp(),
             tipo: 'ingreso-mp'
         };
@@ -243,6 +256,19 @@ class ControlFerreteriaFirebase {
             categoria: categoria || 'Sin categoría',
             cliente: cliente || 'Cliente general',
             fecha: new Date().toLocaleDateString(),
+            hora: new Date().toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false 
+            }),
+            fechaHora: new Date().toLocaleString('es-ES', {
+                day: '2-digit',
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            }),
             timestamp: serverTimestamp(),
             tipo: 'venta-mostrador'
         };
@@ -285,6 +311,19 @@ class ControlFerreteriaFirebase {
             numeroFactura: factura || '',
             estado,
             fecha: new Date().toLocaleDateString(),
+            hora: new Date().toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false 
+            }),
+            fechaHora: new Date().toLocaleString('es-ES', {
+                day: '2-digit',
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            }),
             timestamp: serverTimestamp(),
             tipo: 'pago-proveedor'
         };
@@ -329,6 +368,19 @@ class ControlFerreteriaFirebase {
             monto,
             numeroRecibo: recibo || '',
             fecha: new Date().toLocaleDateString(),
+            hora: new Date().toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false 
+            }),
+            fechaHora: new Date().toLocaleString('es-ES', {
+                day: '2-digit',
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            }),
             timestamp: serverTimestamp(),
             tipo: 'pago-efectivo'
         };
@@ -376,7 +428,8 @@ class ControlFerreteriaFirebase {
         ingresos.forEach(ingreso => {
             const row = tbody.insertRow();
             row.innerHTML = `
-                <td data-label="Fecha">${ingreso.fecha}</td>
+                <td data-label="Fecha">${ingreso.fecha || 'Sin fecha'}</td>
+                <td data-label="Hora">${ingreso.hora || '--:--'}</td>
                 <td data-label="Descripción">${ingreso.descripcion}</td>
                 <td data-label="Categoría">${ingreso.categoria || 'Sin categoría'}</td>
                 <td data-label="Cliente">${ingreso.cliente || 'Cliente general'}</td>
@@ -402,7 +455,8 @@ class ControlFerreteriaFirebase {
         ventas.forEach(venta => {
             const row = tbody.insertRow();
             row.innerHTML = `
-                <td data-label="Fecha">${venta.fecha}</td>
+                <td data-label="Fecha">${venta.fecha || 'Sin fecha'}</td>
+                <td data-label="Hora">${venta.hora || '--:--'}</td>
                 <td data-label="Descripción">${venta.descripcion}</td>
                 <td data-label="Categoría">${venta.categoria || 'Sin categoría'}</td>
                 <td data-label="Cliente">${venta.cliente || 'Cliente general'}</td>
@@ -428,7 +482,8 @@ class ControlFerreteriaFirebase {
             const estadoClass = pago.estado === 'pendiente' ? 'estado-pendiente' : 'estado-pagado';
             
             row.innerHTML = `
-                <td data-label="Fecha">${pago.fecha}</td>
+                <td data-label="Fecha">${pago.fecha || 'Sin fecha'}</td>
+                <td data-label="Hora">${pago.hora || '--:--'}</td>
                 <td data-label="Proveedor">${pago.proveedor}</td>
                 <td data-label="Descripción">${pago.descripcion}</td>
                 <td data-label="Factura">${pago.numeroFactura || 'Sin factura'}</td>
@@ -453,7 +508,8 @@ class ControlFerreteriaFirebase {
         pagos.forEach(pago => {
             const row = tbody.insertRow();
             row.innerHTML = `
-                <td data-label="Fecha">${pago.fecha}</td>
+                <td data-label="Fecha">${pago.fecha || 'Sin fecha'}</td>
+                <td data-label="Hora">${pago.hora || '--:--'}</td>
                 <td data-label="Proveedor">${pago.proveedor}</td>
                 <td data-label="Descripción">${pago.descripcion}</td>
                 <td data-label="Recibo">${pago.numeroRecibo || 'Sin recibo'}</td>
