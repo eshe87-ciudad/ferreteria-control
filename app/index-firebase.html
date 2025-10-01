@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Ferretería - Firebase Real-time</title>
+    <link rel="stylesheet" href="styles-ferreteria.css">
+    <style>
+        /* Estilos adicionales para Firebase sync */
+        .sync-container {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: white;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            font-size: 12px;
+            z-index: 1000;
+        }
+
+        .sync-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .sync-status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .sync-status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .sync-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .connection-info {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .firebase-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .firebase-info h3 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+        }
+
+        .firebase-info p {
+            margin: 0;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            .sync-container {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Indicador de Sincronización -->
+    <div class="sync-container">
+        <div id="sync-status" class="sync-status warning">Conectando...</div>
+        <div class="connection-info">
+            <span id="connection-status">🟡</span>
+            <span>Último sync: <span id="last-sync">--:--</span></span>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Firebase Info Banner -->
+        <div class="firebase-info">
+            <h3>🔥 Sincronización en Tiempo Real</h3>
+            <p>Todos los cambios se sincronizan automáticamente entre dispositivos</p>
+        </div>
+
+        <h1>🔧 Control de Ferretería</h1>
+        
+        <!-- Dashboard de Totales -->
+        <div class="dashboard">
+            <div class="card card-ingreso">
+                <h3>💰 Total Ingresos</h3>
+                <div class="monto" id="total-ingresos">$0.00</div>
+            </div>
+            
+            <div class="card card-gasto">
+                <h3>💸 Total Gastos</h3>
+                <div class="monto" id="total-gastos">$0.00</div>
+            </div>
+            
+            <div class="card card-balance">
+                <h3>📊 Balance</h3>
+                <div class="monto" id="balance">$0.00</div>
+            </div>
+        </div>
+
+        <!-- Sección de Ingresos -->
+        <section class="seccion-ingresos">
+            <h2>💰 Agregar Ingreso</h2>
+            <div class="form-group">
+                <input type="text" id="concepto-ingreso" placeholder="Concepto del ingreso" maxlength="100">
+                <input type="number" id="monto-ingreso" placeholder="Monto" step="0.01" min="0">
+                <button id="btn-agregar-ingreso" class="btn btn-primary">➕ Agregar Ingreso</button>
+            </div>
+            
+            <div class="tabla-container">
+                <h3>📋 Lista de Ingresos</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Concepto</th>
+                            <th>Monto</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-ingresos"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Sección de Gastos -->
+        <section class="seccion-gastos">
+            <h2>💸 Agregar Gasto</h2>
+            <div class="form-group">
+                <input type="text" id="concepto-gasto" placeholder="Concepto del gasto" maxlength="100">
+                <input type="number" id="monto-gasto" placeholder="Monto" step="0.01" min="0">
+                <button id="btn-agregar-gasto" class="btn btn-secondary">➕ Agregar Gasto</button>
+            </div>
+            
+            <div class="tabla-container">
+                <h3>📋 Lista de Gastos</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Concepto</th>
+                            <th>Monto</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-gastos"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Sección de Gestión -->
+        <section class="seccion-gestion">
+            <h2>⚙️ Gestión de Datos</h2>
+            <div class="botones-gestion">
+                <button id="btn-exportar" class="btn btn-info">📥 Exportar Datos</button>
+                <button id="btn-importar" class="btn btn-warning">📤 Importar Datos</button>
+                <button id="btn-limpiar" class="btn btn-danger">🗑️ Limpiar Todo</button>
+            </div>
+            
+            <div class="info-backup">
+                <h4>ℹ️ Información de Backup</h4>
+                <ul>
+                    <li>✅ <strong>Sincronización automática:</strong> Todos los datos se sincronizan en tiempo real</li>
+                    <li>✅ <strong>Backup local:</strong> Los datos se guardan localmente cada 5 minutos</li>
+                    <li>✅ <strong>Acceso desde cualquier dispositivo:</strong> Móvil, tablet, PC</li>
+                    <li>✅ <strong>Sin pérdida de datos:</strong> Funciona sin conexión</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer>
+            <p>🔥 Control de Ferretería con Firebase - Sincronización en Tiempo Real</p>
+            <p><small>📱 Accesible desde cualquier dispositivo • ☁️ Backup automático en la nube</small></p>
+        </footer>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Your web app's Firebase configuration (REEMPLAZAR CON TU CONFIGURACIÓN)
+        const firebaseConfig = {
+            apiKey: "TEMP_API_KEY",
+            authDomain: "tu-proyecto.firebaseapp.com",
+            databaseURL: "https://tu-proyecto.firebasedatabase.app",
+            projectId: "tu-proyecto",
+            storageBucket: "tu-proyecto.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcd1234567890"
+        };
+
+        // Inicializar Firebase
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+        
+        try {
+            const app = initializeApp(firebaseConfig);
+            console.log('🔥 Firebase inicializado correctamente');
+            
+            // Hacer la app disponible globalmente para el script principal
+            window.firebaseApp = app;
+        } catch (error) {
+            console.error('❌ Error inicializando Firebase:', error);
+            
+            // Mostrar error en la UI
+            const syncStatus = document.getElementById('sync-status');
+            if (syncStatus) {
+                syncStatus.textContent = 'Error de configuración';
+                syncStatus.className = 'sync-status error';
+            }
+            
+            alert('Error de configuración Firebase. Por favor, verifica tu configuración en el código.');
+        }
+    </script>
+    
+    <!-- Script principal de la aplicación -->
+    <script type="module" src="script-ferreteria-firebase.js"></script>
+</body>
+</html>
