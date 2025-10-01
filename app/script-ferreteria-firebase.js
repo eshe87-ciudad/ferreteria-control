@@ -469,11 +469,15 @@ class ControlFerreteriaFirebase {
 
     // Actualizar dashboard
     updateDashboard() {
-        // Calcular totales
+        // Calcular totales brutos
         const totalIngresosMP = this.ingresosMP.reduce((sum, item) => sum + (item.montoNeto || item.monto), 0);
         const totalVentasMostrador = this.ventasMostrador.reduce((sum, item) => sum + item.monto, 0);
         const totalPagosProveedores = this.pagosProveedores.reduce((sum, item) => sum + item.monto, 0);
         const totalPagosEfectivo = this.pagosEfectivo.reduce((sum, item) => sum + item.monto, 0);
+        
+        // BALANCES NETOS: Pagos se restan de ingresos correspondientes
+        const balanceNetoMP = totalIngresosMP - totalPagosProveedores; // MP menos pagos transferencia
+        const balanceNetoMostrador = totalVentasMostrador - totalPagosEfectivo; // Mostrador menos pagos efectivo
         
         const totalIngresos = totalIngresosMP + totalVentasMostrador;
         const totalEgresos = totalPagosProveedores + totalPagosEfectivo;
@@ -482,18 +486,18 @@ class ControlFerreteriaFirebase {
         const pendientes = this.pagosProveedores.filter(p => p.estado === 'pendiente');
         const totalPendientes = pendientes.reduce((sum, item) => sum + item.monto, 0);
 
-        // Actualizar elementos del DOM
-        document.getElementById('total-ingresos-mp').textContent = `$${totalIngresosMP.toFixed(2)}`;
-        document.getElementById('contador-ingresos-mp').textContent = `${this.ingresosMP.length} transacciones`;
+        // Actualizar elementos del DOM con BALANCES NETOS
+        document.getElementById('total-ingresos-mp').textContent = `$${balanceNetoMP.toFixed(2)}`;
+        document.getElementById('contador-ingresos-mp').textContent = `${this.ingresosMP.length} ingresos | ${this.pagosProveedores.length} pagos`;
         
-        document.getElementById('total-ventas-mostrador').textContent = `$${totalVentasMostrador.toFixed(2)}`;
-        document.getElementById('contador-ventas-mostrador').textContent = `${this.ventasMostrador.length} ventas`;
+        document.getElementById('total-ventas-mostrador').textContent = `$${balanceNetoMostrador.toFixed(2)}`;
+        document.getElementById('contador-ventas-mostrador').textContent = `${this.ventasMostrador.length} ventas | ${this.pagosEfectivo.length} pagos`;
         
         document.getElementById('total-pagos-proveedores').textContent = `$${totalPagosProveedores.toFixed(2)}`;
-        document.getElementById('contador-pagos-proveedores').textContent = `${this.pagosProveedores.length} pagos`;
+        document.getElementById('contador-pagos-proveedores').textContent = `${this.pagosProveedores.length} pagos transferencia`;
         
         document.getElementById('total-pagos-efectivo').textContent = `$${totalPagosEfectivo.toFixed(2)}`;
-        document.getElementById('contador-pagos-efectivo').textContent = `${this.pagosEfectivo.length} pagos`;
+        document.getElementById('contador-pagos-efectivo').textContent = `${this.pagosEfectivo.length} pagos efectivo`;
         
         document.getElementById('flujo-caja-neto').textContent = `$${flujoCaja.toFixed(2)}`;
         document.getElementById('estado-flujo').textContent = flujoCaja >= 0 ? 'Positivo' : 'Negativo';
