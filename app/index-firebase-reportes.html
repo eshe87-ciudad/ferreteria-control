@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Ferretería - Reportes y Analytics</title>
+    <link rel="stylesheet" href="styles-ferreteria.css">
+    
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- jsPDF para exportar reportes a PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- Firebase v9 SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
+
+        // Your web app's Firebase configuration (TEMPORAL - necesitas reemplazar con la tuya)
+        const firebaseConfig = {
+            apiKey: "TEMP_API_KEY",
+            authDomain: "ferreteria-control-demo.firebaseapp.com",
+            projectId: "ferreteria-control-demo",
+            storageBucket: "ferreteria-control-demo.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcd1234567890"
+        };
+
+        // Initialize Firebase
+        window.firebaseApp = initializeApp(firebaseConfig);
+        window.db = getFirestore(window.firebaseApp);
+        window.auth = getAuth(window.firebaseApp);
+
+        // Export Firebase functions globally
+        window.collection = collection;
+        window.addDoc = addDoc;
+        window.onSnapshot = onSnapshot;
+        window.deleteDoc = deleteDoc;
+        window.doc = doc;
+        window.updateDoc = updateDoc;
+        window.query = query;
+        window.orderBy = orderBy;
+        window.serverTimestamp = serverTimestamp;
+        window.signInAnonymously = signInAnonymously;
+        window.onAuthStateChanged = onAuthStateChanged;
+    </script>
+
+    <style>
+        /* ===== ESTILOS PARA REPORTES Y GRÁFICOS ===== */
+
+        /* Sección de reportes */
+        .reportes {
+            margin-top: 2rem;
+        }
+
+        /* Filtros de reportes */
+        .reportes-filtros {
+            display: grid;
+            grid-template-columns: auto auto 1fr;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .filtros-periodo {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filtros-fechas {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filtros-fechas input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .reportes-acciones {
+            display: flex;
+            gap: 0.5rem;
+            justify-self: end;
+        }
+
+        /* Grid de gráficos */
+        .graficos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Contenedor de cada gráfico */
+        .grafico-container {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+        }
+
+        .grafico-container h3 {
+            margin: 0 0 1rem 0;
+            color: #333;
+            font-size: 1.1rem;
+            text-align: center;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 0.5rem;
+        }
+
+        .grafico-container canvas {
+            max-height: 300px;
+            width: 100% !important;
+            height: 300px !important;
+        }
+
+        /* Estadísticas resumen */
+        .estadisticas-resumen {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.9rem;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
+        .stat-card span {
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        /* Botones de reportes */
+        #btn-actualizar-reportes {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+        }
+
+        #btn-actualizar-reportes:hover {
+            background: #45a049;
+        }
+
+        #btn-exportar-pdf {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+        }
+
+        #btn-exportar-pdf:hover {
+            background: #1976D2;
+        }
+
+        /* Responsivo para tablets */
+        @media (max-width: 768px) {
+            .reportes-filtros {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .reportes-acciones {
+                justify-self: stretch;
+            }
+            
+            .graficos-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .grafico-container {
+                padding: 1rem;
+            }
+            
+            .estadisticas-resumen {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 0.8rem;
+            }
+            
+            .stat-card {
+                padding: 1rem;
+            }
+            
+            .stat-card span {
+                font-size: 1.2rem;
+            }
+        }
+
+        /* Responsivo para móviles */
+        @media (max-width: 480px) {
+            .graficos-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .grafico-container canvas {
+                height: 250px !important;
+            }
+            
+            .estadisticas-resumen {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .filtros-fechas {
+                flex-direction: column;
+            }
+            
+            .reportes-acciones {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+
+        /* Colores específicos para cada tipo de estadística */
+        .stat-card:nth-child(1) {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        }
+
+        .stat-card:nth-child(2) {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+        }
+
+        .stat-card:nth-child(3) {
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+        }
+
+        .stat-card:nth-child(4) {
+            background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Control Ferretería - Reportes & Analytics</h1>
+            <p>Sistema de Reportes Avanzados • Gráficos Interactivos • Análisis de Datos</p>
+            <div id="sync-status" class="sync-status">
+                <span id="sync-indicator" class="sync-indicator offline">🔄 Conectando...</span>
+            </div>
+        </header>
+
+        <main>
+            <!-- Dashboard de resumen -->
+            <section class="dashboard">
+                <div class="card">
+                    <h2>📊 Resumen General</h2>
+                    <div class="dashboard-grid">
+                        <div class="dashboard-item balance-neto-mp">
+                            <div class="dashboard-icon">💳</div>
+                            <div class="dashboard-info">
+                                <h3>Balance Neto MP</h3>
+                                <span id="balance-neto-mp">$0</span>
+                                <small id="detalle-mp">MP: $0 - Transferencias: $0</small>
+                            </div>
+                        </div>
+                        <div class="dashboard-item balance-neto-mostrador">
+                            <div class="dashboard-icon">🏪</div>
+                            <div class="dashboard-info">
+                                <h3>Balance Neto Mostrador</h3>
+                                <span id="balance-neto-mostrador">$0</span>
+                                <small id="detalle-mostrador">Mostrador: $0 - Efectivo: $0</small>
+                            </div>
+                        </div>
+                        <div class="dashboard-item total-ingresos">
+                            <div class="dashboard-icon">💰</div>
+                            <div class="dashboard-info">
+                                <h3>Ingresos Totales</h3>
+                                <span id="total-ingresos">$0</span>
+                                <small id="contador-ingresos">0 transacciones</small>
+                            </div>
+                        </div>
+                        <div class="dashboard-item total-gastos">
+                            <div class="dashboard-icon">💸</div>
+                            <div class="dashboard-info">
+                                <h3>Gastos Totales</h3>
+                                <span id="total-gastos">$0</span>
+                                <small id="contador-gastos">0 transacciones</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reportes y estadísticas -->
+            <section class="reportes">
+                <div class="card">
+                    <h2>📊 Reportes y Analytics</h2>
+                    
+                    <!-- Controles de período para reportes -->
+                    <div class="reportes-filtros">
+                        <div class="filtros-periodo">
+                            <label for="reporte-periodo">Período del reporte:</label>
+                            <select id="reporte-periodo">
+                                <option value="dia">Por día</option>
+                                <option value="semana">Por semana</option>
+                                <option value="mes" selected>Por mes</option>
+                                <option value="trimestre">Por trimestre</option>
+                            </select>
+                        </div>
+                        <div class="filtros-fechas">
+                            <label for="reporte-desde">Desde:</label>
+                            <input type="date" id="reporte-desde">
+                            <label for="reporte-hasta">Hasta:</label>
+                            <input type="date" id="reporte-hasta">
+                        </div>
+                        <div class="reportes-acciones">
+                            <button id="btn-actualizar-reportes" class="btn-primary">🔄 Actualizar</button>
+                            <button id="btn-exportar-pdf" class="btn-secondary">📄 Exportar PDF</button>
+                        </div>
+                    </div>
+
+                    <!-- Grid de gráficos -->
+                    <div class="graficos-grid">
+                        <!-- Gráfico 1: Ingresos vs Gastos -->
+                        <div class="grafico-container">
+                            <h3>💰 Ingresos vs Gastos</h3>
+                            <canvas id="chart-ingresos-gastos"></canvas>
+                        </div>
+
+                        <!-- Gráfico 2: MP vs Mostrador -->
+                        <div class="grafico-container">
+                            <h3>💳 Mercado Pago vs Mostrador</h3>
+                            <canvas id="chart-mp-mostrador"></canvas>
+                        </div>
+
+                        <!-- Gráfico 3: Tendencias de Proveedores -->
+                        <div class="grafico-container">
+                            <h3>🏪 Tendencias de Proveedores</h3>
+                            <canvas id="chart-proveedores"></canvas>
+                        </div>
+
+                        <!-- Gráfico 4: Balance Neto en el tiempo -->
+                        <div class="grafico-container">
+                            <h3>📈 Balance Neto</h3>
+                            <canvas id="chart-balance-neto"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Resumen estadístico -->
+                    <div class="estadisticas-resumen">
+                        <div class="stat-card">
+                            <h4>💵 Promedio diario de ingresos</h4>
+                            <span id="stat-promedio-ingresos">$0</span>
+                        </div>
+                        <div class="stat-card">
+                            <h4>📊 Día más rentable</h4>
+                            <span id="stat-mejor-dia">-</span>
+                        </div>
+                        <div class="stat-card">
+                            <h4>🏆 Proveedor más frecuente</h4>
+                            <span id="stat-top-proveedor">-</span>
+                        </div>
+                        <div class="stat-card">
+                            <h4>📈 Crecimiento mensual</h4>
+                            <span id="stat-crecimiento">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Mini formularios para testing -->
+            <section class="formularios">
+                <div class="card">
+                    <h2>⚡ Agregar Transacciones Rápidas</h2>
+                    <div class="formularios-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                        <!-- Ingreso MP -->
+                        <div class="formulario-mini">
+                            <h4>💳 Ingreso MP</h4>
+                            <input type="text" id="quick-mp-desc" placeholder="Descripción" style="width: 100%; margin-bottom: 0.5rem; padding: 0.5rem;">
+                            <input type="number" id="quick-mp-monto" placeholder="Monto" style="width: 100%; margin-bottom: 0.5rem; padding: 0.5rem;">
+                            <button id="btn-quick-mp" style="width: 100%; padding: 0.5rem; background: #2196F3; color: white; border: none; border-radius: 4px;">Agregar</button>
+                        </div>
+                        
+                        <!-- Venta Mostrador -->
+                        <div class="formulario-mini">
+                            <h4>🏪 Venta Mostrador</h4>
+                            <input type="text" id="quick-mostrador-desc" placeholder="Descripción" style="width: 100%; margin-bottom: 0.5rem; padding: 0.5rem;">
+                            <input type="number" id="quick-mostrador-monto" placeholder="Monto" style="width: 100%; margin-bottom: 0.5rem; padding: 0.5rem;">
+                            <button id="btn-quick-mostrador" style="width: 100%; padding: 0.5rem; background: #FF9800; color: white; border: none; border-radius: 4px;">Agregar</button>
+                        </div>
+                        
+                        <!-- Pago Proveedor -->
+                        <div class="formulario-mini">
+                            <h4>💸 Pago Proveedor</h4>
+                            <input type="text" id="quick-proveedor-desc" placeholder="Proveedor" style="width: 100%; margin-bottom: 0.5rem; padding: 0.5rem;">
+                            <input type="number" id="quick-proveedor-monto" placeholder="Monto" style="width: 100%; margin-bottom: 0.5rem; padding: 0.5rem;">
+                            <button id="btn-quick-proveedor" style="width: 100%; padding: 0.5rem; background: #9C27B0; color: white; border: none; border-radius: 4px;">Agregar</button>
+                        </div>
+                        
+                        <!-- Pago Efectivo -->
+                        <div class="formulario-mini">
+                            <h4>💵 Pago Efectivo</h4>
+                            <input type="text" id="quick-efectivo-desc" placeholder="Descripción" style="width: 100%; margin-bottom: 0.5rem; padding: 0.5rem;">
+                            <input type="number" id="quick-efectivo-monto" placeholder="Monto" style="width: 100%; margin-bottom: 0.5rem; padding: 0.5rem;">
+                            <button id="btn-quick-efectivo" style="width: 100%; padding: 0.5rem; background: #4CAF50; color: white; border: none; border-radius: 4px;">Agregar</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="info-guardado">
+                <p><strong>🔥 Firebase Sync:</strong> <span id="ultima-actualizacion">Nunca</span></p>
+                <p><strong>📊 Sistema de Reportes:</strong> Chart.js + jsPDF + Analytics</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="script-ferreteria-firebase.js"></script>
+    
+    <!-- Script para Reportes y Gráficos -->
+    <script>
+        // Variables globales para los gráficos
+        let chartIngresosGastos, chartMpMostrador, chartProveedores, chartBalanceNeto;
+        
+        // Datos consolidados para reportes
+        let reportesData = {
+            ingresos: [],
+            gastos: [],
+            fechas: [],
+            proveedores: {}
+        };
+
+        // Inicializar gráficos cuando el documento esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            setupReportesEventListeners();
+            setupQuickForms();
+            // Actualizar reportes cada vez que cambien los datos
+            setTimeout(actualizarReportes, 2000); // Esperar a que se carguen los datos de Firebase
+        });
+
+        function initializeCharts() {
+            // Configuración común para todos los gráficos
+            Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+            Chart.defaults.font.size = 12;
+            Chart.defaults.responsive = true;
+            Chart.defaults.maintainAspectRatio = false;
+
+            // Gráfico 1: Ingresos vs Gastos
+            const ctx1 = document.getElementById('chart-ingresos-gastos').getContext('2d');
+            chartIngresosGastos = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Ingresos Totales',
+                        data: [],
+                        borderColor: '#4CAF50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'Gastos Totales',
+                        data: [],
+                        borderColor: '#F44336',
+                        backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Evolución de Ingresos vs Gastos'
+                        },
+                        legend: {
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico 2: MP vs Mostrador
+            const ctx2 = document.getElementById('chart-mp-mostrador').getContext('2d');
+            chartMpMostrador = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Mercado Pago', 'Ventas Mostrador'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['#2196F3', '#FF9800'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Distribución de Ingresos'
+                        },
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Gráfico 3: Tendencias de Proveedores
+            const ctx3 = document.getElementById('chart-proveedores').getContext('2d');
+            chartProveedores = new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Total Pagado',
+                        data: [],
+                        backgroundColor: '#9C27B0',
+                        borderColor: '#7B1FA2',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Pagos por Proveedor'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico 4: Balance Neto
+            const ctx4 = document.getElementById('chart-balance-neto').getContext('2d');
+            chartBalanceNeto = new Chart(ctx4, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Balance Neto',
+                        data: [],
+                        borderColor: '#607D8B',
+                        backgroundColor: 'rgba(96, 125, 139, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Balance Neto en el Tiempo'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function setupReportesEventListeners() {
+            // Botón actualizar reportes
+            document.getElementById('btn-actualizar-reportes').addEventListener('click', actualizarReportes);
+            
+            // Botón exportar PDF
+            document.getElementById('btn-exportar-pdf').addEventListener('click', exportarReportePDF);
+            
+            // Cambio en período de reporte
+            document.getElementById('reporte-periodo').addEventListener('change', actualizarReportes);
+            
+            // Configurar fechas por defecto (último mes)
+            const hoy = new Date();
+            const haceUnMes = new Date();
+            haceUnMes.setMonth(haceUnMes.getMonth() - 1);
+            
+            document.getElementById('reporte-hasta').value = hoy.toISOString().split('T')[0];
+            document.getElementById('reporte-desde').value = haceUnMes.toISOString().split('T')[0];
+        }
+
+        function setupQuickForms() {
+            // Formularios rápidos para testing
+            document.getElementById('btn-quick-mp').addEventListener('click', () => {
+                const desc = document.getElementById('quick-mp-desc').value;
+                const monto = parseFloat(document.getElementById('quick-mp-monto').value);
+                if (desc && monto) {
+                    agregarIngresoMP(desc, monto, 0);
+                    document.getElementById('quick-mp-desc').value = '';
+                    document.getElementById('quick-mp-monto').value = '';
+                }
+            });
+
+            document.getElementById('btn-quick-mostrador').addEventListener('click', () => {
+                const desc = document.getElementById('quick-mostrador-desc').value;
+                const monto = parseFloat(document.getElementById('quick-mostrador-monto').value);
+                if (desc && monto) {
+                    agregarVentaMostrador(desc, monto);
+                    document.getElementById('quick-mostrador-desc').value = '';
+                    document.getElementById('quick-mostrador-monto').value = '';
+                }
+            });
+
+            document.getElementById('btn-quick-proveedor').addEventListener('click', () => {
+                const desc = document.getElementById('quick-proveedor-desc').value;
+                const monto = parseFloat(document.getElementById('quick-proveedor-monto').value);
+                if (desc && monto) {
+                    agregarPagoProveedor(desc, monto);
+                    document.getElementById('quick-proveedor-desc').value = '';
+                    document.getElementById('quick-proveedor-monto').value = '';
+                }
+            });
+
+            document.getElementById('btn-quick-efectivo').addEventListener('click', () => {
+                const desc = document.getElementById('quick-efectivo-desc').value;
+                const monto = parseFloat(document.getElementById('quick-efectivo-monto').value);
+                if (desc && monto) {
+                    agregarPagoEfectivo(desc, monto);
+                    document.getElementById('quick-efectivo-desc').value = '';
+                    document.getElementById('quick-efectivo-monto').value = '';
+                }
+            });
+        }
+
+        function actualizarReportes() {
+            // Esta función se ejecutará con los datos de Firebase
+            // Por ahora crearemos datos de ejemplo para testing
+            
+            const periodo = document.getElementById('reporte-periodo').value;
+            const desde = new Date(document.getElementById('reporte-desde').value);
+            const hasta = new Date(document.getElementById('reporte-hasta').value);
+            
+            // Datos de ejemplo (esto se reemplazará con datos reales de Firebase)
+            const datosEjemplo = generarDatosEjemplo(desde, hasta, periodo);
+            
+            // Actualizar cada gráfico
+            actualizarGraficoIngresosGastos(datosEjemplo);
+            actualizarGraficoMpMostrador(datosEjemplo);
+            actualizarGraficoProveedores(datosEjemplo);
+            actualizarGraficoBalanceNeto(datosEjemplo);
+            actualizarEstadisticas(datosEjemplo);
+        }
+
+        function generarDatosEjemplo(desde, hasta, periodo) {
+            // Generar datos de ejemplo para demonstración
+            const datos = {
+                fechas: [],
+                ingresos: [],
+                gastos: [],
+                mercadoPago: 0,
+                mostrador: 0,
+                proveedores: {},
+                balanceNeto: []
+            };
+            
+            // Generar fechas según el período
+            const diffTime = Math.abs(hasta - desde);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            for (let i = 0; i <= diffDays; i += periodo === 'dia' ? 1 : 7) {
+                const fecha = new Date(desde);
+                fecha.setDate(desde.getDate() + i);
+                
+                const fechaStr = fecha.toLocaleDateString('es-ES');
+                datos.fechas.push(fechaStr);
+                
+                // Datos aleatorios para ejemplo
+                const ingresos = Math.random() * 50000 + 10000;
+                const gastos = Math.random() * 30000 + 5000;
+                
+                datos.ingresos.push(ingresos);
+                datos.gastos.push(gastos);
+                datos.balanceNeto.push(ingresos - gastos);
+            }
+            
+            // Datos para MP vs Mostrador
+            datos.mercadoPago = 150000;
+            datos.mostrador = 97000;
+            
+            // Datos de proveedores
+            datos.proveedores = {
+                'Proveedor A': 45000,
+                'Proveedor B': 32000,
+                'Proveedor C': 28000,
+                'Proveedor D': 15000
+            };
+            
+            return datos;
+        }
+
+        function actualizarGraficoIngresosGastos(datos) {
+            chartIngresosGastos.data.labels = datos.fechas;
+            chartIngresosGastos.data.datasets[0].data = datos.ingresos;
+            chartIngresosGastos.data.datasets[1].data = datos.gastos;
+            chartIngresosGastos.update();
+        }
+
+        function actualizarGraficoMpMostrador(datos) {
+            chartMpMostrador.data.datasets[0].data = [datos.mercadoPago, datos.mostrador];
+            chartMpMostrador.update();
+        }
+
+        function actualizarGraficoProveedores(datos) {
+            const proveedores = Object.keys(datos.proveedores);
+            const montos = Object.values(datos.proveedores);
+            
+            chartProveedores.data.labels = proveedores;
+            chartProveedores.data.datasets[0].data = montos;
+            chartProveedores.update();
+        }
+
+        function actualizarGraficoBalanceNeto(datos) {
+            chartBalanceNeto.data.labels = datos.fechas;
+            chartBalanceNeto.data.datasets[0].data = datos.balanceNeto;
+            chartBalanceNeto.update();
+        }
+
+        function actualizarEstadisticas(datos) {
+            // Calcular estadísticas
+            const promedioIngresos = datos.ingresos.reduce((a, b) => a + b, 0) / datos.ingresos.length;
+            const mejorDia = datos.fechas[datos.balanceNeto.indexOf(Math.max(...datos.balanceNeto))];
+            const topProveedor = Object.keys(datos.proveedores)[0];
+            const crecimiento = ((datos.balanceNeto[datos.balanceNeto.length - 1] - datos.balanceNeto[0]) / datos.balanceNeto[0] * 100);
+            
+            // Actualizar DOM
+            document.getElementById('stat-promedio-ingresos').textContent = '$' + promedioIngresos.toLocaleString();
+            document.getElementById('stat-mejor-dia').textContent = mejorDia || '-';
+            document.getElementById('stat-top-proveedor').textContent = topProveedor || '-';
+            document.getElementById('stat-crecimiento').textContent = (isNaN(crecimiento) ? 0 : crecimiento.toFixed(1)) + '%';
+        }
+
+        function exportarReportePDF() {
+            // Usar jsPDF para exportar
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Título del reporte
+            doc.setFontSize(20);
+            doc.text('Reporte Ferretería', 20, 20);
+            
+            // Fecha del reporte
+            doc.setFontSize(12);
+            doc.text('Fecha: ' + new Date().toLocaleDateString('es-ES'), 20, 35);
+            
+            // Estadísticas principales
+            const stats = [
+                'Promedio diario de ingresos: ' + document.getElementById('stat-promedio-ingresos').textContent,
+                'Día más rentable: ' + document.getElementById('stat-mejor-dia').textContent,
+                'Proveedor más frecuente: ' + document.getElementById('stat-top-proveedor').textContent,
+                'Crecimiento mensual: ' + document.getElementById('stat-crecimiento').textContent
+            ];
+            
+            let yPos = 50;
+            stats.forEach(stat => {
+                doc.text(stat, 20, yPos);
+                yPos += 10;
+            });
+            
+            // Guardar el PDF
+            doc.save('reporte-ferreteria-' + new Date().toISOString().split('T')[0] + '.pdf');
+        }
+
+        // Funciones placeholder para la integración con Firebase (estas se conectarán con el script principal)
+        function agregarIngresoMP(descripcion, monto, comision) {
+            console.log('Agregando ingreso MP:', descripcion, monto);
+            // Esta función se conectará con la función real de Firebase
+        }
+
+        function agregarVentaMostrador(descripcion, monto) {
+            console.log('Agregando venta mostrador:', descripcion, monto);
+            // Esta función se conectará con la función real de Firebase
+        }
+
+        function agregarPagoProveedor(proveedor, monto) {
+            console.log('Agregando pago proveedor:', proveedor, monto);
+            // Esta función se conectará con la función real de Firebase
+        }
+
+        function agregarPagoEfectivo(descripcion, monto) {
+            console.log('Agregando pago efectivo:', descripcion, monto);
+            // Esta función se conectará con la función real de Firebase
+        }
+    </script>
+</body>
+</html>

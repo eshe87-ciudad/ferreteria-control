@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Ferretería - Firebase Real-time</title>
+    <link rel="stylesheet" href="styles-ferreteria.css">
+    <style>
+        /* Estilos adicionales para Firebase sync */
+        .sync-container {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: white;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            font-size: 12px;
+            z-index: 1000;
+        }
+
+        .sync-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .sync-status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .sync-status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .sync-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .connection-info {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .firebase-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .firebase-info h3 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+        }
+
+        .firebase-info p {
+            margin: 0;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            .sync-container {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Indicador de Sincronización -->
+    <div class="sync-container">
+        <div id="sync-status" class="sync-status warning">Conectando...</div>
+        <div class="connection-info">
+            <span id="connection-status">🟡</span>
+            <span>Último sync: <span id="last-sync">--:--</span></span>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Firebase Info Banner -->
+        <div class="firebase-info">
+            <h3>🔥 Sincronización en Tiempo Real</h3>
+            <p>Todos los cambios se sincronizan automáticamente entre dispositivos</p>
+        </div>
+
+        <header>
+            <h1>🔧 Control Ferretería - Firebase</h1>
+            <p>Gestión de Proveedores y Pagos • Ingresos Mercado Pago • Sincronización en Tiempo Real</p>
+        </header>
+
+        <!-- Dashboard de Totales -->
+        <section class="dashboard">
+            <div class="card dashboard-card">
+                <h2>📊 Resumen del Negocio</h2>
+                <div class="dashboard-grid">
+                    <div class="dashboard-item ingresos-mp">
+                        <div class="dashboard-icon">�</div>
+                        <div class="dashboard-info">
+                            <h3>Ingresos Mercado Pago</h3>
+                            <span id="total-ingresos-mp">$0</span>
+                            <small id="contador-ingresos-mp">0 transacciones</small>
+                        </div>
+                    </div>
+                    <div class="dashboard-item ventas-mostrador">
+                        <div class="dashboard-icon">🛒</div>
+                        <div class="dashboard-info">
+                            <h3>Ventas Mostrador</h3>
+                            <span id="total-ventas-mostrador">$0</span>
+                            <small id="contador-ventas-mostrador">0 ventas</small>
+                        </div>
+                    </div>
+                    <div class="dashboard-item pagos-proveedores">
+                        <div class="dashboard-icon">🏪</div>
+                        <div class="dashboard-info">
+                            <h3>Pagos Transferencia</h3>
+                            <span id="total-pagos-proveedores">$0</span>
+                            <small id="contador-pagos-proveedores">0 pagos</small>
+                        </div>
+                    </div>
+                    <div class="dashboard-item pagos-efectivo">
+                        <div class="dashboard-icon">💵</div>
+                        <div class="dashboard-info">
+                            <h3>Pagos en Efectivo</h3>
+                            <span id="total-pagos-efectivo">$0</span>
+                            <small id="contador-pagos-efectivo">0 pagos</small>
+                        </div>
+                    </div>
+                    <div class="dashboard-item flujo-caja">
+                        <div class="dashboard-icon">💰</div>
+                        <div class="dashboard-info">
+                            <h3>Flujo de Caja</h3>
+                            <span id="flujo-caja-neto">$0</span>
+                            <small id="estado-flujo">Balance actual</small>
+                        </div>
+                    </div>
+                    <div class="dashboard-item pendientes">
+                        <div class="dashboard-icon">⏰</div>
+                        <div class="dashboard-info">
+                            <h3>Pagos Pendientes</h3>
+                            <span id="total-pendientes">$0</span>
+                            <small id="contador-pendientes">0 facturas</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección de Ingresos Mercado Pago -->
+        <section class="seccion-ingresos-mp">
+            <h2>� Ingresos Mercado Pago</h2>
+            <div class="form-group">
+                <input type="text" id="descripcion-ingreso-mp" placeholder="Descripción del ingreso" maxlength="100">
+                <input type="number" id="monto-ingreso-mp" placeholder="Monto" step="0.01" min="0">
+                <input type="number" id="comision-mp" placeholder="Comisión MP" step="0.01" min="0">
+                <select id="categoria-ingreso-mp">
+                    <option value="">Seleccionar categoría</option>
+                    <option value="Herramientas manuales">Herramientas manuales</option>
+                    <option value="Herramientas eléctricas">Herramientas eléctricas</option>
+                    <option value="Materiales construcción">Materiales construcción</option>
+                    <option value="Ferretería general">Ferretería general</option>
+                    <option value="Plomería">Plomería</option>
+                    <option value="Electricidad">Electricidad</option>
+                    <option value="Otros">Otros</option>
+                </select>
+                <input type="text" id="cliente-mp" placeholder="Cliente (opcional)" maxlength="50">
+                <button id="btn-agregar-ingreso-mp" class="btn btn-primary">➕ Agregar Ingreso MP</button>
+            </div>
+        </section>
+
+        <!-- Sección de Ventas Mostrador -->
+        <section class="seccion-ventas-mostrador">
+            <h2>🛒 Ventas Mostrador</h2>
+            <div class="form-group">
+                <input type="text" id="descripcion-venta-mostrador" placeholder="Descripción de la venta" maxlength="100">
+                <input type="number" id="monto-venta-mostrador" placeholder="Monto" step="0.01" min="0">
+                <select id="categoria-venta-mostrador">
+                    <option value="">Seleccionar categoría</option>
+                    <option value="Herramientas manuales">Herramientas manuales</option>
+                    <option value="Herramientas eléctricas">Herramientas eléctricas</option>
+                    <option value="Materiales construcción">Materiales construcción</option>
+                    <option value="Ferretería general">Ferretería general</option>
+                    <option value="Plomería">Plomería</option>
+                    <option value="Electricidad">Electricidad</option>
+                    <option value="Otros">Otros</option>
+                </select>
+                <input type="text" id="cliente-mostrador" placeholder="Cliente (opcional)" maxlength="50">
+                <button id="btn-agregar-venta-mostrador" class="btn btn-secondary">➕ Agregar Venta Mostrador</button>
+            </div>
+        </section>
+
+        <!-- Sección de Pagos a Proveedores -->
+        <section class="seccion-pagos-proveedores">
+            <h2>🏪 Pagos a Proveedores (Transferencia)</h2>
+            <div class="form-group">
+                <input type="text" id="proveedor-transferencia" placeholder="Nombre del proveedor" maxlength="100" list="proveedores-lista">
+                <datalist id="proveedores-lista"></datalist>
+                <input type="text" id="descripcion-pago-proveedor" placeholder="Descripción del pago" maxlength="100">
+                <input type="number" id="monto-pago-proveedor" placeholder="Monto" step="0.01" min="0">
+                <input type="text" id="numero-factura" placeholder="Nº Factura (opcional)" maxlength="20">
+                <select id="estado-pago-proveedor">
+                    <option value="pagado">Pagado</option>
+                    <option value="pendiente">Pendiente</option>
+                </select>
+                <button id="btn-agregar-pago-proveedor" class="btn btn-warning">➕ Agregar Pago Transferencia</button>
+            </div>
+        </section>
+
+        <!-- Sección de Pagos en Efectivo -->
+        <section class="seccion-pagos-efectivo">
+            <h2>� Pagos a Proveedores (Efectivo)</h2>
+            <div class="form-group">
+                <input type="text" id="proveedor-efectivo" placeholder="Nombre del proveedor" maxlength="100">
+                <input type="text" id="descripcion-pago-efectivo" placeholder="Descripción del pago" maxlength="100">
+                <input type="number" id="monto-pago-efectivo" placeholder="Monto" step="0.01" min="0">
+                <input type="text" id="recibo-efectivo" placeholder="Nº Recibo (opcional)" maxlength="20">
+                <button id="btn-agregar-pago-efectivo" class="btn btn-danger">➕ Agregar Pago Efectivo</button>
+            </div>
+        </section>
+
+        <!-- Tablas de Datos -->
+        <section class="tablas-datos">
+            <!-- Tabla Ingresos MP -->
+            <div class="tabla-container">
+                <h3>💳 Últimos Ingresos Mercado Pago</h3>
+                <div class="tabla-header">
+                    <button class="btn-ver-todos" data-tipo="ingresos-mp">Ver Todos</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Descripción</th>
+                            <th>Categoría</th>
+                            <th>Cliente</th>
+                            <th>Monto</th>
+                            <th>Comisión</th>
+                            <th>Neto</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-ingresos-mp"></tbody>
+                </table>
+            </div>
+
+            <!-- Tabla Ventas Mostrador -->
+            <div class="tabla-container">
+                <h3>� Últimas Ventas Mostrador</h3>
+                <div class="tabla-header">
+                    <button class="btn-ver-todos" data-tipo="ventas-mostrador">Ver Todos</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Descripción</th>
+                            <th>Categoría</th>
+                            <th>Cliente</th>
+                            <th>Monto</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-ventas-mostrador"></tbody>
+                </table>
+            </div>
+
+            <!-- Tabla Pagos Proveedores -->
+            <div class="tabla-container">
+                <h3>🏪 Últimos Pagos Transferencia</h3>
+                <div class="tabla-header">
+                    <button class="btn-ver-todos" data-tipo="pagos-proveedores">Ver Todos</button>
+                    <button class="btn-solo-pendientes">Solo Pendientes</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Proveedor</th>
+                            <th>Descripción</th>
+                            <th>Factura</th>
+                            <th>Monto</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-pagos-proveedores"></tbody>
+                </table>
+            </div>
+
+            <!-- Tabla Pagos Efectivo -->
+            <div class="tabla-container">
+                <h3>💵 Últimos Pagos Efectivo</h3>
+                <div class="tabla-header">
+                    <button class="btn-ver-todos" data-tipo="pagos-efectivo">Ver Todos</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Proveedor</th>
+                            <th>Descripción</th>
+                            <th>Recibo</th>
+                            <th>Monto</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-pagos-efectivo"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Sección de Gestión -->
+        <section class="seccion-gestion">
+            <h2>⚙️ Gestión de Datos</h2>
+            <div class="botones-gestion">
+                <button id="btn-exportar" class="btn btn-info">📥 Exportar Datos</button>
+                <button id="btn-importar" class="btn btn-warning">📤 Importar Datos</button>
+                <button id="btn-limpiar" class="btn btn-danger">🗑️ Limpiar Todo</button>
+                <button id="btn-backup" class="btn btn-success">💾 Backup Manual</button>
+            </div>
+            
+            <div class="info-backup">
+                <h4>ℹ️ Información Firebase</h4>
+                <ul>
+                    <li>🔥 <strong>Sincronización en tiempo real:</strong> Cambios instantáneos entre dispositivos</li>
+                    <li>☁️ <strong>Backup automático:</strong> Todos los datos se guardan en la nube</li>
+                    <li>📱 <strong>Acceso universal:</strong> Desde cualquier dispositivo con internet</li>
+                    <li>🔒 <strong>Seguridad:</strong> Datos protegidos con autenticación Firebase</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer>
+            <p>🔥 Control de Ferretería con Firebase - Sincronización en Tiempo Real</p>
+            <p><small>📱 Accesible desde cualquier dispositivo • ☁️ Backup automático en la nube • 🔄 Sync instantáneo</small></p>
+        </footer>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Your web app's Firebase configuration - ferreteriajym-gastos
+        const firebaseConfig = {
+            apiKey: "AIzaSyBLsMp8nAxD4drtgHR16mdL_LZ2L2OOVsE",
+            authDomain: "ferreteriajym-gastos.firebaseapp.com",
+            projectId: "ferreteriajym-gastos",
+            storageBucket: "ferreteriajym-gastos.firebasestorage.app",
+            messagingSenderId: "346093684971",
+            appId: "1:346093684971:web:a51f3a7a0b185c724516ae",
+            measurementId: "G-PBYPPL86MH"
+        };
+
+        // Inicializar Firebase
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+        
+        try {
+            const app = initializeApp(firebaseConfig);
+            console.log('🔥 Firebase inicializado correctamente');
+            
+            // Hacer la app disponible globalmente para el script principal
+            window.firebaseApp = app;
+        } catch (error) {
+            console.error('❌ Error inicializando Firebase:', error);
+            
+            // Mostrar error en la UI
+            const syncStatus = document.getElementById('sync-status');
+            if (syncStatus) {
+                syncStatus.textContent = 'Error de configuración';
+                syncStatus.className = 'sync-status error';
+            }
+            
+            alert('Error de configuración Firebase. Por favor, verifica tu configuración en el código.');
+        }
+    </script>
+    
+    <!-- Script principal de la aplicación -->
+    <script type="module" src="script-ferreteria-firebase.js"></script>
+</body>
+</html>
