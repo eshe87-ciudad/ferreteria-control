@@ -99,72 +99,227 @@
             <p>Todos los cambios se sincronizan automáticamente entre dispositivos</p>
         </div>
 
-        <h1>🔧 Control de Ferretería</h1>
-        
-        <!-- Dashboard de Totales -->
-        <div class="dashboard">
-            <div class="card card-ingreso">
-                <h3>💰 Total Ingresos</h3>
-                <div class="monto" id="total-ingresos">$0.00</div>
-            </div>
-            
-            <div class="card card-gasto">
-                <h3>💸 Total Gastos</h3>
-                <div class="monto" id="total-gastos">$0.00</div>
-            </div>
-            
-            <div class="card card-balance">
-                <h3>📊 Balance</h3>
-                <div class="monto" id="balance">$0.00</div>
-            </div>
-        </div>
+        <header>
+            <h1>🔧 Control Ferretería - Firebase</h1>
+            <p>Gestión de Proveedores y Pagos • Ingresos Mercado Pago • Sincronización en Tiempo Real</p>
+        </header>
 
-        <!-- Sección de Ingresos -->
-        <section class="seccion-ingresos">
-            <h2>💰 Agregar Ingreso</h2>
-            <div class="form-group">
-                <input type="text" id="concepto-ingreso" placeholder="Concepto del ingreso" maxlength="100">
-                <input type="number" id="monto-ingreso" placeholder="Monto" step="0.01" min="0">
-                <button id="btn-agregar-ingreso" class="btn btn-primary">➕ Agregar Ingreso</button>
-            </div>
-            
-            <div class="tabla-container">
-                <h3>📋 Lista de Ingresos</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Concepto</th>
-                            <th>Monto</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-ingresos"></tbody>
-                </table>
+        <!-- Dashboard de Totales -->
+        <section class="dashboard">
+            <div class="card dashboard-card">
+                <h2>📊 Resumen del Negocio</h2>
+                <div class="dashboard-grid">
+                    <div class="dashboard-item ingresos-mp">
+                        <div class="dashboard-icon">�</div>
+                        <div class="dashboard-info">
+                            <h3>Ingresos Mercado Pago</h3>
+                            <span id="total-ingresos-mp">$0</span>
+                            <small id="contador-ingresos-mp">0 transacciones</small>
+                        </div>
+                    </div>
+                    <div class="dashboard-item ventas-mostrador">
+                        <div class="dashboard-icon">🛒</div>
+                        <div class="dashboard-info">
+                            <h3>Ventas Mostrador</h3>
+                            <span id="total-ventas-mostrador">$0</span>
+                            <small id="contador-ventas-mostrador">0 ventas</small>
+                        </div>
+                    </div>
+                    <div class="dashboard-item pagos-proveedores">
+                        <div class="dashboard-icon">🏪</div>
+                        <div class="dashboard-info">
+                            <h3>Pagos Transferencia</h3>
+                            <span id="total-pagos-proveedores">$0</span>
+                            <small id="contador-pagos-proveedores">0 pagos</small>
+                        </div>
+                    </div>
+                    <div class="dashboard-item pagos-efectivo">
+                        <div class="dashboard-icon">💵</div>
+                        <div class="dashboard-info">
+                            <h3>Pagos en Efectivo</h3>
+                            <span id="total-pagos-efectivo">$0</span>
+                            <small id="contador-pagos-efectivo">0 pagos</small>
+                        </div>
+                    </div>
+                    <div class="dashboard-item flujo-caja">
+                        <div class="dashboard-icon">💰</div>
+                        <div class="dashboard-info">
+                            <h3>Flujo de Caja</h3>
+                            <span id="flujo-caja-neto">$0</span>
+                            <small id="estado-flujo">Balance actual</small>
+                        </div>
+                    </div>
+                    <div class="dashboard-item pendientes">
+                        <div class="dashboard-icon">⏰</div>
+                        <div class="dashboard-info">
+                            <h3>Pagos Pendientes</h3>
+                            <span id="total-pendientes">$0</span>
+                            <small id="contador-pendientes">0 facturas</small>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
-        <!-- Sección de Gastos -->
-        <section class="seccion-gastos">
-            <h2>💸 Agregar Gasto</h2>
+        <!-- Sección de Ingresos Mercado Pago -->
+        <section class="seccion-ingresos-mp">
+            <h2>� Ingresos Mercado Pago</h2>
             <div class="form-group">
-                <input type="text" id="concepto-gasto" placeholder="Concepto del gasto" maxlength="100">
-                <input type="number" id="monto-gasto" placeholder="Monto" step="0.01" min="0">
-                <button id="btn-agregar-gasto" class="btn btn-secondary">➕ Agregar Gasto</button>
+                <input type="text" id="descripcion-ingreso-mp" placeholder="Descripción del ingreso" maxlength="100">
+                <input type="number" id="monto-ingreso-mp" placeholder="Monto" step="0.01" min="0">
+                <input type="number" id="comision-mp" placeholder="Comisión MP" step="0.01" min="0">
+                <select id="categoria-ingreso-mp">
+                    <option value="">Seleccionar categoría</option>
+                    <option value="Herramientas manuales">Herramientas manuales</option>
+                    <option value="Herramientas eléctricas">Herramientas eléctricas</option>
+                    <option value="Materiales construcción">Materiales construcción</option>
+                    <option value="Ferretería general">Ferretería general</option>
+                    <option value="Plomería">Plomería</option>
+                    <option value="Electricidad">Electricidad</option>
+                    <option value="Otros">Otros</option>
+                </select>
+                <input type="text" id="cliente-mp" placeholder="Cliente (opcional)" maxlength="50">
+                <button id="btn-agregar-ingreso-mp" class="btn btn-primary">➕ Agregar Ingreso MP</button>
             </div>
-            
+        </section>
+
+        <!-- Sección de Ventas Mostrador -->
+        <section class="seccion-ventas-mostrador">
+            <h2>🛒 Ventas Mostrador</h2>
+            <div class="form-group">
+                <input type="text" id="descripcion-venta-mostrador" placeholder="Descripción de la venta" maxlength="100">
+                <input type="number" id="monto-venta-mostrador" placeholder="Monto" step="0.01" min="0">
+                <select id="categoria-venta-mostrador">
+                    <option value="">Seleccionar categoría</option>
+                    <option value="Herramientas manuales">Herramientas manuales</option>
+                    <option value="Herramientas eléctricas">Herramientas eléctricas</option>
+                    <option value="Materiales construcción">Materiales construcción</option>
+                    <option value="Ferretería general">Ferretería general</option>
+                    <option value="Plomería">Plomería</option>
+                    <option value="Electricidad">Electricidad</option>
+                    <option value="Otros">Otros</option>
+                </select>
+                <input type="text" id="cliente-mostrador" placeholder="Cliente (opcional)" maxlength="50">
+                <button id="btn-agregar-venta-mostrador" class="btn btn-secondary">➕ Agregar Venta Mostrador</button>
+            </div>
+        </section>
+
+        <!-- Sección de Pagos a Proveedores -->
+        <section class="seccion-pagos-proveedores">
+            <h2>🏪 Pagos a Proveedores (Transferencia)</h2>
+            <div class="form-group">
+                <input type="text" id="proveedor-transferencia" placeholder="Nombre del proveedor" maxlength="100" list="proveedores-lista">
+                <datalist id="proveedores-lista"></datalist>
+                <input type="text" id="descripcion-pago-proveedor" placeholder="Descripción del pago" maxlength="100">
+                <input type="number" id="monto-pago-proveedor" placeholder="Monto" step="0.01" min="0">
+                <input type="text" id="numero-factura" placeholder="Nº Factura (opcional)" maxlength="20">
+                <select id="estado-pago-proveedor">
+                    <option value="pagado">Pagado</option>
+                    <option value="pendiente">Pendiente</option>
+                </select>
+                <button id="btn-agregar-pago-proveedor" class="btn btn-warning">➕ Agregar Pago Transferencia</button>
+            </div>
+        </section>
+
+        <!-- Sección de Pagos en Efectivo -->
+        <section class="seccion-pagos-efectivo">
+            <h2>� Pagos a Proveedores (Efectivo)</h2>
+            <div class="form-group">
+                <input type="text" id="proveedor-efectivo" placeholder="Nombre del proveedor" maxlength="100">
+                <input type="text" id="descripcion-pago-efectivo" placeholder="Descripción del pago" maxlength="100">
+                <input type="number" id="monto-pago-efectivo" placeholder="Monto" step="0.01" min="0">
+                <input type="text" id="recibo-efectivo" placeholder="Nº Recibo (opcional)" maxlength="20">
+                <button id="btn-agregar-pago-efectivo" class="btn btn-danger">➕ Agregar Pago Efectivo</button>
+            </div>
+        </section>
+
+        <!-- Tablas de Datos -->
+        <section class="tablas-datos">
+            <!-- Tabla Ingresos MP -->
             <div class="tabla-container">
-                <h3>📋 Lista de Gastos</h3>
+                <h3>💳 Últimos Ingresos Mercado Pago</h3>
+                <div class="tabla-header">
+                    <button class="btn-ver-todos" data-tipo="ingresos-mp">Ver Todos</button>
+                </div>
                 <table>
                     <thead>
                         <tr>
                             <th>Fecha</th>
-                            <th>Concepto</th>
+                            <th>Descripción</th>
+                            <th>Categoría</th>
+                            <th>Cliente</th>
+                            <th>Monto</th>
+                            <th>Comisión</th>
+                            <th>Neto</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-ingresos-mp"></tbody>
+                </table>
+            </div>
+
+            <!-- Tabla Ventas Mostrador -->
+            <div class="tabla-container">
+                <h3>� Últimas Ventas Mostrador</h3>
+                <div class="tabla-header">
+                    <button class="btn-ver-todos" data-tipo="ventas-mostrador">Ver Todos</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Descripción</th>
+                            <th>Categoría</th>
+                            <th>Cliente</th>
                             <th>Monto</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-gastos"></tbody>
+                    <tbody id="tabla-ventas-mostrador"></tbody>
+                </table>
+            </div>
+
+            <!-- Tabla Pagos Proveedores -->
+            <div class="tabla-container">
+                <h3>🏪 Últimos Pagos Transferencia</h3>
+                <div class="tabla-header">
+                    <button class="btn-ver-todos" data-tipo="pagos-proveedores">Ver Todos</button>
+                    <button class="btn-solo-pendientes">Solo Pendientes</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Proveedor</th>
+                            <th>Descripción</th>
+                            <th>Factura</th>
+                            <th>Monto</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-pagos-proveedores"></tbody>
+                </table>
+            </div>
+
+            <!-- Tabla Pagos Efectivo -->
+            <div class="tabla-container">
+                <h3>💵 Últimos Pagos Efectivo</h3>
+                <div class="tabla-header">
+                    <button class="btn-ver-todos" data-tipo="pagos-efectivo">Ver Todos</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Proveedor</th>
+                            <th>Descripción</th>
+                            <th>Recibo</th>
+                            <th>Monto</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-pagos-efectivo"></tbody>
                 </table>
             </div>
         </section>
@@ -176,15 +331,16 @@
                 <button id="btn-exportar" class="btn btn-info">📥 Exportar Datos</button>
                 <button id="btn-importar" class="btn btn-warning">📤 Importar Datos</button>
                 <button id="btn-limpiar" class="btn btn-danger">🗑️ Limpiar Todo</button>
+                <button id="btn-backup" class="btn btn-success">💾 Backup Manual</button>
             </div>
             
             <div class="info-backup">
-                <h4>ℹ️ Información de Backup</h4>
+                <h4>ℹ️ Información Firebase</h4>
                 <ul>
-                    <li>✅ <strong>Sincronización automática:</strong> Todos los datos se sincronizan en tiempo real</li>
-                    <li>✅ <strong>Backup local:</strong> Los datos se guardan localmente cada 5 minutos</li>
-                    <li>✅ <strong>Acceso desde cualquier dispositivo:</strong> Móvil, tablet, PC</li>
-                    <li>✅ <strong>Sin pérdida de datos:</strong> Funciona sin conexión</li>
+                    <li>🔥 <strong>Sincronización en tiempo real:</strong> Cambios instantáneos entre dispositivos</li>
+                    <li>☁️ <strong>Backup automático:</strong> Todos los datos se guardan en la nube</li>
+                    <li>📱 <strong>Acceso universal:</strong> Desde cualquier dispositivo con internet</li>
+                    <li>🔒 <strong>Seguridad:</strong> Datos protegidos con autenticación Firebase</li>
                 </ul>
             </div>
         </section>
@@ -192,7 +348,7 @@
         <!-- Footer -->
         <footer>
             <p>🔥 Control de Ferretería con Firebase - Sincronización en Tiempo Real</p>
-            <p><small>📱 Accesible desde cualquier dispositivo • ☁️ Backup automático en la nube</small></p>
+            <p><small>📱 Accesible desde cualquier dispositivo • ☁️ Backup automático en la nube • 🔄 Sync instantáneo</small></p>
         </footer>
     </div>
 

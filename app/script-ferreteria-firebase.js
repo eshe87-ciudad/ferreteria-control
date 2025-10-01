@@ -1,4 +1,4 @@
-// script-ferreteria-firebase.js - Control de Ferretería con Firebase Real-time
+// script-ferreteria-firebase.js - Control de Ferretería con Firebase Real-time - 4 Categorías
 
 import { 
     initializeApp 
@@ -29,15 +29,23 @@ class ControlFerreteriaFirebase {
         this.auth = null;
         this.db = null;
         this.user = null;
-        this.unsubscribeIngresos = null;
-        this.unsubscribeGastos = null;
+        
+        // Listeners para cada colección
+        this.unsubscribeIngresosMP = null;
+        this.unsubscribeVentasMostrador = null;
+        this.unsubscribePagosProveedores = null;
+        this.unsubscribePagosEfectivo = null;
+        
         this.syncStatus = document.getElementById('sync-status');
         this.connectionStatus = document.getElementById('connection-status');
         this.lastSync = document.getElementById('last-sync');
         
-        // Datos locales como backup
-        this.ingresos = JSON.parse(localStorage.getItem('ingresos')) || [];
-        this.gastos = JSON.parse(localStorage.getItem('gastos')) || [];
+        // Datos locales como backup para cada categoría
+        this.ingresosMP = JSON.parse(localStorage.getItem('ingresosMP')) || [];
+        this.ventasMostrador = JSON.parse(localStorage.getItem('ventasMostrador')) || [];
+        this.pagosProveedores = JSON.parse(localStorage.getItem('pagosProveedores')) || [];
+        this.pagosEfectivo = JSON.parse(localStorage.getItem('pagosEfectivo')) || [];
+        this.proveedoresRecurrentes = JSON.parse(localStorage.getItem('proveedoresRecurrentes')) || [];
         
         this.initializeFirebase();
         this.setupEventListeners();
@@ -84,50 +92,87 @@ class ControlFerreteriaFirebase {
         if (!this.db || !this.user) return;
 
         try {
-            // Listener para ingresos
+            // Listener para ingresos Mercado Pago
             const ingresosQuery = query(
-                collection(this.db, 'ingresos'),
+                collection(this.db, 'ingresosMP'),
                 orderBy('timestamp', 'desc')
             );
             
-            this.unsubscribeIngresos = onSnapshot(ingresosQuery, (snapshot) => {
-                this.ingresos = [];
+            this.unsubscribeIngresosMP = onSnapshot(ingresosQuery, (snapshot) => {
+                this.ingresosMP = [];
                 snapshot.forEach((doc) => {
-                    this.ingresos.push({
+                    this.ingresosMP.push({
                         id: doc.id,
                         ...doc.data()
                     });
                 });
-                this.updateIngresosTable();
-                this.updateTotales();
+                this.mostrarIngresosMP();
+                this.updateDashboard();
                 this.updateLastSync();
-                this.saveToLocalStorage(); // Backup local
+                this.saveToLocalStorage();
             }, (error) => {
-                console.error('Error en listener ingresos:', error);
+                console.error('Error en listener ingresos MP:', error);
                 this.updateSyncStatus('Error sincronización', 'error');
             });
 
-            // Listener para gastos
-            const gastosQuery = query(
-                collection(this.db, 'gastos'),
+            // Listener para ventas mostrador
+            const ventasQuery = query(
+                collection(this.db, 'ventasMostrador'),
                 orderBy('timestamp', 'desc')
             );
             
-            this.unsubscribeGastos = onSnapshot(gastosQuery, (snapshot) => {
-                this.gastos = [];
+            this.unsubscribeVentasMostrador = onSnapshot(ventasQuery, (snapshot) => {
+                this.ventasMostrador = [];
                 snapshot.forEach((doc) => {
-                    this.gastos.push({
+                    this.ventasMostrador.push({
                         id: doc.id,
                         ...doc.data()
                     });
                 });
-                this.updateGastosTable();
-                this.updateTotales();
+                this.mostrarVentasMostrador();
+                this.updateDashboard();
                 this.updateLastSync();
-                this.saveToLocalStorage(); // Backup local
-            }, (error) => {
-                console.error('Error en listener gastos:', error);
-                this.updateSyncStatus('Error sincronización', 'error');
+                this.saveToLocalStorage();
+            });
+
+            // Listener para pagos proveedores
+            const pagosProveedoresQuery = query(
+                collection(this.db, 'pagosProveedores'),
+                orderBy('timestamp', 'desc')
+            );
+            
+            this.unsubscribePagosProveedores = onSnapshot(pagosProveedoresQuery, (snapshot) => {
+                this.pagosProveedores = [];
+                snapshot.forEach((doc) => {
+                    this.pagosProveedores.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                this.mostrarPagosProveedores();
+                this.updateDashboard();
+                this.updateLastSync();
+                this.saveToLocalStorage();
+            });
+
+            // Listener para pagos efectivo
+            const pagosEfectivoQuery = query(
+                collection(this.db, 'pagosEfectivo'),
+                orderBy('timestamp', 'desc')
+            );
+            
+            this.unsubscribePagosEfectivo = onSnapshot(pagosEfectivoQuery, (snapshot) => {
+                this.pagosEfectivo = [];
+                snapshot.forEach((doc) => {
+                    this.pagosEfectivo.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                this.mostrarPagosEfectivo();
+                this.updateDashboard();
+                this.updateLastSync();
+                this.saveToLocalStorage();
             });
 
         } catch (error) {
@@ -136,136 +181,210 @@ class ControlFerreteriaFirebase {
         }
     }
 
-    async agregarIngreso() {
-        const concepto = document.getElementById('concepto-ingreso').value.trim();
-        const monto = parseFloat(document.getElementById('monto-ingreso').value);
+    // Agregar Ingreso Mercado Pago
+    async agregarIngresoMP() {
+        const descripcion = document.getElementById('descripcion-ingreso-mp').value.trim();
+        const monto = parseFloat(document.getElementById('monto-ingreso-mp').value);
+        const comision = parseFloat(document.getElementById('comision-mp').value) || 0;
+        const categoria = document.getElementById('categoria-ingreso-mp').value;
+        const cliente = document.getElementById('cliente-mp').value.trim();
 
-        if (!concepto || !monto || monto <= 0) {
-            alert('Por favor, completa todos los campos correctamente');
+        if (!descripcion || !monto || monto <= 0) {
+            alert('Por favor, completa descripción y monto correctamente');
             return;
         }
 
         const ingreso = {
-            concepto,
+            descripcion,
             monto,
+            comision,
+            montoNeto: monto - comision,
+            categoria: categoria || 'Sin categoría',
+            cliente: cliente || 'Cliente general',
             fecha: new Date().toLocaleDateString(),
-            timestamp: serverTimestamp()
+            timestamp: serverTimestamp(),
+            tipo: 'ingreso-mp'
         };
 
         try {
-            // Agregar a Firebase
-            await addDoc(collection(this.db, 'ingresos'), ingreso);
+            await addDoc(collection(this.db, 'ingresosMP'), ingreso);
             
             // Limpiar formulario
-            document.getElementById('concepto-ingreso').value = '';
-            document.getElementById('monto-ingreso').value = '';
+            document.getElementById('descripcion-ingreso-mp').value = '';
+            document.getElementById('monto-ingreso-mp').value = '';
+            document.getElementById('comision-mp').value = '';
+            document.getElementById('categoria-ingreso-mp').value = '';
+            document.getElementById('cliente-mp').value = '';
             
             this.updateSyncStatus('Sincronizado', 'success');
             
         } catch (error) {
-            console.error('Error agregando ingreso:', error);
+            console.error('Error agregando ingreso MP:', error);
             this.updateSyncStatus('Error al guardar', 'error');
-            
-            // Fallback: guardar localmente
-            ingreso.timestamp = new Date().toISOString();
-            ingreso.id = Date.now().toString();
-            this.ingresos.unshift(ingreso);
-            this.updateIngresosTable();
-            this.updateTotales();
-            this.saveToLocalStorage();
+            this.agregarLocalFallback('ingresosMP', ingreso);
         }
     }
 
-    async eliminarIngreso(id) {
-        if (!confirm('¿Estás seguro de eliminar este ingreso?')) return;
+    // Agregar Venta Mostrador
+    async agregarVentaMostrador() {
+        const descripcion = document.getElementById('descripcion-venta-mostrador').value.trim();
+        const monto = parseFloat(document.getElementById('monto-venta-mostrador').value);
+        const categoria = document.getElementById('categoria-venta-mostrador').value;
+        const cliente = document.getElementById('cliente-mostrador').value.trim();
 
-        try {
-            await deleteDoc(doc(this.db, 'ingresos', id));
-            this.updateSyncStatus('Sincronizado', 'success');
-            
-        } catch (error) {
-            console.error('Error eliminando ingreso:', error);
-            this.updateSyncStatus('Error al eliminar', 'error');
-            
-            // Fallback: eliminar localmente
-            this.ingresos = this.ingresos.filter(ingreso => ingreso.id !== id);
-            this.updateIngresosTable();
-            this.updateTotales();
-            this.saveToLocalStorage();
-        }
-    }
-
-    async agregarGasto() {
-        const concepto = document.getElementById('concepto-gasto').value.trim();
-        const monto = parseFloat(document.getElementById('monto-gasto').value);
-
-        if (!concepto || !monto || monto <= 0) {
-            alert('Por favor, completa todos los campos correctamente');
+        if (!descripcion || !monto || monto <= 0) {
+            alert('Por favor, completa descripción y monto correctamente');
             return;
         }
 
-        const gasto = {
-            concepto,
+        const venta = {
+            descripcion,
             monto,
+            categoria: categoria || 'Sin categoría',
+            cliente: cliente || 'Cliente general',
             fecha: new Date().toLocaleDateString(),
-            timestamp: serverTimestamp()
+            timestamp: serverTimestamp(),
+            tipo: 'venta-mostrador'
         };
 
         try {
-            // Agregar a Firebase
-            await addDoc(collection(this.db, 'gastos'), gasto);
+            await addDoc(collection(this.db, 'ventasMostrador'), venta);
             
             // Limpiar formulario
-            document.getElementById('concepto-gasto').value = '';
-            document.getElementById('monto-gasto').value = '';
+            document.getElementById('descripcion-venta-mostrador').value = '';
+            document.getElementById('monto-venta-mostrador').value = '';
+            document.getElementById('categoria-venta-mostrador').value = '';
+            document.getElementById('cliente-mostrador').value = '';
             
             this.updateSyncStatus('Sincronizado', 'success');
             
         } catch (error) {
-            console.error('Error agregando gasto:', error);
+            console.error('Error agregando venta mostrador:', error);
             this.updateSyncStatus('Error al guardar', 'error');
-            
-            // Fallback: guardar localmente
-            gasto.timestamp = new Date().toISOString();
-            gasto.id = Date.now().toString();
-            this.gastos.unshift(gasto);
-            this.updateGastosTable();
-            this.updateTotales();
-            this.saveToLocalStorage();
+            this.agregarLocalFallback('ventasMostrador', venta);
         }
     }
 
-    async eliminarGasto(id) {
-        if (!confirm('¿Estás seguro de eliminar este gasto?')) return;
+    // Agregar Pago Proveedor
+    async agregarPagoProveedor() {
+        const proveedor = document.getElementById('proveedor-transferencia').value.trim();
+        const descripcion = document.getElementById('descripcion-pago-proveedor').value.trim();
+        const monto = parseFloat(document.getElementById('monto-pago-proveedor').value);
+        const factura = document.getElementById('numero-factura').value.trim();
+        const estado = document.getElementById('estado-pago-proveedor').value;
+
+        if (!proveedor || !descripcion || !monto || monto <= 0) {
+            alert('Por favor, completa todos los campos obligatorios');
+            return;
+        }
+
+        const pago = {
+            proveedor,
+            descripcion,
+            monto,
+            numeroFactura: factura || '',
+            estado,
+            fecha: new Date().toLocaleDateString(),
+            timestamp: serverTimestamp(),
+            tipo: 'pago-proveedor'
+        };
 
         try {
-            await deleteDoc(doc(this.db, 'gastos', id));
+            await addDoc(collection(this.db, 'pagosProveedores'), pago);
+            
+            // Agregar proveedor a lista recurrente
+            this.agregarProveedorRecurrente(proveedor);
+            
+            // Limpiar formulario
+            document.getElementById('proveedor-transferencia').value = '';
+            document.getElementById('descripcion-pago-proveedor').value = '';
+            document.getElementById('monto-pago-proveedor').value = '';
+            document.getElementById('numero-factura').value = '';
+            document.getElementById('estado-pago-proveedor').value = 'pagado';
+            
             this.updateSyncStatus('Sincronizado', 'success');
             
         } catch (error) {
-            console.error('Error eliminando gasto:', error);
-            this.updateSyncStatus('Error al eliminar', 'error');
-            
-            // Fallback: eliminar localmente
-            this.gastos = this.gastos.filter(gasto => gasto.id !== id);
-            this.updateGastosTable();
-            this.updateTotales();
-            this.saveToLocalStorage();
+            console.error('Error agregando pago proveedor:', error);
+            this.updateSyncStatus('Error al guardar', 'error');
+            this.agregarLocalFallback('pagosProveedores', pago);
         }
     }
 
-    updateIngresosTable() {
-        const tbody = document.getElementById('tabla-ingresos');
-        tbody.innerHTML = '';
+    // Agregar Pago Efectivo
+    async agregarPagoEfectivo() {
+        const proveedor = document.getElementById('proveedor-efectivo').value.trim();
+        const descripcion = document.getElementById('descripcion-pago-efectivo').value.trim();
+        const monto = parseFloat(document.getElementById('monto-pago-efectivo').value);
+        const recibo = document.getElementById('recibo-efectivo').value.trim();
 
-        this.ingresos.forEach(ingreso => {
+        if (!proveedor || !descripcion || !monto || monto <= 0) {
+            alert('Por favor, completa todos los campos obligatorios');
+            return;
+        }
+
+        const pago = {
+            proveedor,
+            descripcion,
+            monto,
+            numeroRecibo: recibo || '',
+            fecha: new Date().toLocaleDateString(),
+            timestamp: serverTimestamp(),
+            tipo: 'pago-efectivo'
+        };
+
+        try {
+            await addDoc(collection(this.db, 'pagosEfectivo'), pago);
+            
+            // Limpiar formulario
+            document.getElementById('proveedor-efectivo').value = '';
+            document.getElementById('descripcion-pago-efectivo').value = '';
+            document.getElementById('monto-pago-efectivo').value = '';
+            document.getElementById('recibo-efectivo').value = '';
+            
+            this.updateSyncStatus('Sincronizado', 'success');
+            
+        } catch (error) {
+            console.error('Error agregando pago efectivo:', error);
+            this.updateSyncStatus('Error al guardar', 'error');
+            this.agregarLocalFallback('pagosEfectivo', pago);
+        }
+    }
+
+    // Funciones para eliminar registros
+    async eliminarRegistro(id, coleccion) {
+        if (!confirm('¿Estás seguro de eliminar este registro?')) return;
+
+        try {
+            await deleteDoc(doc(this.db, coleccion, id));
+            this.updateSyncStatus('Sincronizado', 'success');
+            
+        } catch (error) {
+            console.error(`Error eliminando registro de ${coleccion}:`, error);
+            this.updateSyncStatus('Error al eliminar', 'error');
+        }
+    }
+
+    // Actualizar tablas de datos
+    mostrarIngresosMP(limite = 5) {
+        const tbody = document.getElementById('tabla-ingresos-mp');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '';
+        const ingresos = this.ingresosMP.slice(0, limite);
+
+        ingresos.forEach(ingreso => {
             const row = tbody.insertRow();
             row.innerHTML = `
                 <td data-label="Fecha">${ingreso.fecha}</td>
-                <td data-label="Concepto">${ingreso.concepto}</td>
+                <td data-label="Descripción">${ingreso.descripcion}</td>
+                <td data-label="Categoría">${ingreso.categoria || 'Sin categoría'}</td>
+                <td data-label="Cliente">${ingreso.cliente || 'Cliente general'}</td>
                 <td data-label="Monto">$${ingreso.monto.toFixed(2)}</td>
+                <td data-label="Comisión">$${(ingreso.comision || 0).toFixed(2)}</td>
+                <td data-label="Neto">$${(ingreso.montoNeto || ingreso.monto).toFixed(2)}</td>
                 <td data-label="Acciones">
-                    <button onclick="control.eliminarIngreso('${ingreso.id}')" class="btn-eliminar">
+                    <button onclick="control.eliminarRegistro('${ingreso.id}', 'ingresosMP')" class="btn-eliminar">
                         🗑️ Eliminar
                     </button>
                 </td>
@@ -273,18 +392,23 @@ class ControlFerreteriaFirebase {
         });
     }
 
-    updateGastosTable() {
-        const tbody = document.getElementById('tabla-gastos');
+    mostrarVentasMostrador(limite = 5) {
+        const tbody = document.getElementById('tabla-ventas-mostrador');
+        if (!tbody) return;
+        
         tbody.innerHTML = '';
+        const ventas = this.ventasMostrador.slice(0, limite);
 
-        this.gastos.forEach(gasto => {
+        ventas.forEach(venta => {
             const row = tbody.insertRow();
             row.innerHTML = `
-                <td data-label="Fecha">${gasto.fecha}</td>
-                <td data-label="Concepto">${gasto.concepto}</td>
-                <td data-label="Monto">$${gasto.monto.toFixed(2)}</td>
+                <td data-label="Fecha">${venta.fecha}</td>
+                <td data-label="Descripción">${venta.descripcion}</td>
+                <td data-label="Categoría">${venta.categoria || 'Sin categoría'}</td>
+                <td data-label="Cliente">${venta.cliente || 'Cliente general'}</td>
+                <td data-label="Monto">$${venta.monto.toFixed(2)}</td>
                 <td data-label="Acciones">
-                    <button onclick="control.eliminarGasto('${gasto.id}')" class="btn-eliminar">
+                    <button onclick="control.eliminarRegistro('${venta.id}', 'ventasMostrador')" class="btn-eliminar">
                         🗑️ Eliminar
                     </button>
                 </td>
@@ -292,17 +416,127 @@ class ControlFerreteriaFirebase {
         });
     }
 
-    updateTotales() {
-        const totalIngresos = this.ingresos.reduce((sum, item) => sum + item.monto, 0);
-        const totalGastos = this.gastos.reduce((sum, item) => sum + item.monto, 0);
-        const balance = totalIngresos - totalGastos;
-
-        document.getElementById('total-ingresos').textContent = `$${totalIngresos.toFixed(2)}`;
-        document.getElementById('total-gastos').textContent = `$${totalGastos.toFixed(2)}`;
+    mostrarPagosProveedores(limite = 5) {
+        const tbody = document.getElementById('tabla-pagos-proveedores');
+        if (!tbody) return;
         
-        const balanceElement = document.getElementById('balance');
-        balanceElement.textContent = `$${balance.toFixed(2)}`;
-        balanceElement.className = balance >= 0 ? 'positivo' : 'negativo';
+        tbody.innerHTML = '';
+        const pagos = this.pagosProveedores.slice(0, limite);
+
+        pagos.forEach(pago => {
+            const row = tbody.insertRow();
+            const estadoClass = pago.estado === 'pendiente' ? 'estado-pendiente' : 'estado-pagado';
+            
+            row.innerHTML = `
+                <td data-label="Fecha">${pago.fecha}</td>
+                <td data-label="Proveedor">${pago.proveedor}</td>
+                <td data-label="Descripción">${pago.descripcion}</td>
+                <td data-label="Factura">${pago.numeroFactura || 'Sin factura'}</td>
+                <td data-label="Monto">$${pago.monto.toFixed(2)}</td>
+                <td data-label="Estado"><span class="${estadoClass}">${pago.estado}</span></td>
+                <td data-label="Acciones">
+                    <button onclick="control.eliminarRegistro('${pago.id}', 'pagosProveedores')" class="btn-eliminar">
+                        🗑️ Eliminar
+                    </button>
+                </td>
+            `;
+        });
+    }
+
+    mostrarPagosEfectivo(limite = 5) {
+        const tbody = document.getElementById('tabla-pagos-efectivo');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '';
+        const pagos = this.pagosEfectivo.slice(0, limite);
+
+        pagos.forEach(pago => {
+            const row = tbody.insertRow();
+            row.innerHTML = `
+                <td data-label="Fecha">${pago.fecha}</td>
+                <td data-label="Proveedor">${pago.proveedor}</td>
+                <td data-label="Descripción">${pago.descripcion}</td>
+                <td data-label="Recibo">${pago.numeroRecibo || 'Sin recibo'}</td>
+                <td data-label="Monto">$${pago.monto.toFixed(2)}</td>
+                <td data-label="Acciones">
+                    <button onclick="control.eliminarRegistro('${pago.id}', 'pagosEfectivo')" class="btn-eliminar">
+                        🗑️ Eliminar
+                    </button>
+                </td>
+            `;
+        });
+    }
+
+    // Actualizar dashboard
+    updateDashboard() {
+        // Calcular totales
+        const totalIngresosMP = this.ingresosMP.reduce((sum, item) => sum + (item.montoNeto || item.monto), 0);
+        const totalVentasMostrador = this.ventasMostrador.reduce((sum, item) => sum + item.monto, 0);
+        const totalPagosProveedores = this.pagosProveedores.reduce((sum, item) => sum + item.monto, 0);
+        const totalPagosEfectivo = this.pagosEfectivo.reduce((sum, item) => sum + item.monto, 0);
+        
+        const totalIngresos = totalIngresosMP + totalVentasMostrador;
+        const totalEgresos = totalPagosProveedores + totalPagosEfectivo;
+        const flujoCaja = totalIngresos - totalEgresos;
+        
+        const pendientes = this.pagosProveedores.filter(p => p.estado === 'pendiente');
+        const totalPendientes = pendientes.reduce((sum, item) => sum + item.monto, 0);
+
+        // Actualizar elementos del DOM
+        document.getElementById('total-ingresos-mp').textContent = `$${totalIngresosMP.toFixed(2)}`;
+        document.getElementById('contador-ingresos-mp').textContent = `${this.ingresosMP.length} transacciones`;
+        
+        document.getElementById('total-ventas-mostrador').textContent = `$${totalVentasMostrador.toFixed(2)}`;
+        document.getElementById('contador-ventas-mostrador').textContent = `${this.ventasMostrador.length} ventas`;
+        
+        document.getElementById('total-pagos-proveedores').textContent = `$${totalPagosProveedores.toFixed(2)}`;
+        document.getElementById('contador-pagos-proveedores').textContent = `${this.pagosProveedores.length} pagos`;
+        
+        document.getElementById('total-pagos-efectivo').textContent = `$${totalPagosEfectivo.toFixed(2)}`;
+        document.getElementById('contador-pagos-efectivo').textContent = `${this.pagosEfectivo.length} pagos`;
+        
+        document.getElementById('flujo-caja-neto').textContent = `$${flujoCaja.toFixed(2)}`;
+        document.getElementById('estado-flujo').textContent = flujoCaja >= 0 ? 'Positivo' : 'Negativo';
+        
+        document.getElementById('total-pendientes').textContent = `$${totalPendientes.toFixed(2)}`;
+        document.getElementById('contador-pendientes').textContent = `${pendientes.length} facturas`;
+    }
+
+    // Funciones auxiliares
+    agregarProveedorRecurrente(proveedor) {
+        if (!this.proveedoresRecurrentes.includes(proveedor)) {
+            this.proveedoresRecurrentes.push(proveedor);
+            this.llenarProveedoresRecurrentes();
+            this.saveToLocalStorage();
+        }
+    }
+
+    llenarProveedoresRecurrentes() {
+        const datalist = document.getElementById('proveedores-lista');
+        if (!datalist) return;
+        
+        datalist.innerHTML = '';
+        this.proveedoresRecurrentes.forEach(proveedor => {
+            const option = document.createElement('option');
+            option.value = proveedor;
+            datalist.appendChild(option);
+        });
+    }
+
+    agregarLocalFallback(tipo, data) {
+        data.timestamp = new Date().toISOString();
+        data.id = Date.now().toString();
+        this[tipo].unshift(data);
+        this.updateDashboard();
+        this.saveToLocalStorage();
+        
+        // Actualizar tabla correspondiente
+        switch(tipo) {
+            case 'ingresosMP': this.mostrarIngresosMP(); break;
+            case 'ventasMostrador': this.mostrarVentasMostrador(); break;
+            case 'pagosProveedores': this.mostrarPagosProveedores(); break;
+            case 'pagosEfectivo': this.mostrarPagosEfectivo(); break;
+        }
     }
 
     updateSyncStatus(message, type) {
@@ -311,7 +545,6 @@ class ControlFerreteriaFirebase {
         this.syncStatus.textContent = message;
         this.syncStatus.className = `sync-status ${type}`;
         
-        // Actualizar indicador de conexión
         if (this.connectionStatus) {
             const icon = type === 'success' ? '🟢' : type === 'warning' ? '🟡' : '🔴';
             this.connectionStatus.textContent = icon;
@@ -326,11 +559,14 @@ class ControlFerreteriaFirebase {
         this.lastSync.textContent = timeString;
     }
 
-    // Funciones de backup local
+    // Backup y storage local
     saveToLocalStorage() {
         try {
-            localStorage.setItem('ingresos', JSON.stringify(this.ingresos));
-            localStorage.setItem('gastos', JSON.stringify(this.gastos));
+            localStorage.setItem('ingresosMP', JSON.stringify(this.ingresosMP));
+            localStorage.setItem('ventasMostrador', JSON.stringify(this.ventasMostrador));
+            localStorage.setItem('pagosProveedores', JSON.stringify(this.pagosProveedores));
+            localStorage.setItem('pagosEfectivo', JSON.stringify(this.pagosEfectivo));
+            localStorage.setItem('proveedoresRecurrentes', JSON.stringify(this.proveedoresRecurrentes));
             localStorage.setItem('lastBackup', new Date().toISOString());
         } catch (error) {
             console.error('Error guardando en localStorage:', error);
@@ -339,16 +575,21 @@ class ControlFerreteriaFirebase {
 
     loadFromLocalStorage() {
         try {
-            this.ingresos = JSON.parse(localStorage.getItem('ingresos')) || [];
-            this.gastos = JSON.parse(localStorage.getItem('gastos')) || [];
-            this.updateIngresosTable();
-            this.updateGastosTable();
-            this.updateTotales();
+            this.ingresosMP = JSON.parse(localStorage.getItem('ingresosMP')) || [];
+            this.ventasMostrador = JSON.parse(localStorage.getItem('ventasMostrador')) || [];
+            this.pagosProveedores = JSON.parse(localStorage.getItem('pagosProveedores')) || [];
+            this.pagosEfectivo = JSON.parse(localStorage.getItem('pagosEfectivo')) || [];
+            this.proveedoresRecurrentes = JSON.parse(localStorage.getItem('proveedoresRecurrentes')) || [];
+            
+            this.mostrarIngresosMP();
+            this.mostrarVentasMostrador();
+            this.mostrarPagosProveedores();
+            this.mostrarPagosEfectivo();
+            this.updateDashboard();
+            this.llenarProveedoresRecurrentes();
             this.updateSyncStatus('Datos locales', 'warning');
         } catch (error) {
             console.error('Error cargando desde localStorage:', error);
-            this.ingresos = [];
-            this.gastos = [];
         }
     }
 
@@ -359,19 +600,22 @@ class ControlFerreteriaFirebase {
         }, 5 * 60 * 1000);
     }
 
-    // Funciones de importar/exportar
+    // Exportar datos
     exportarDatos() {
         const datos = {
-            ingresos: this.ingresos,
-            gastos: this.gastos,
+            ingresosMP: this.ingresosMP,
+            ventasMostrador: this.ventasMostrador,
+            pagosProveedores: this.pagosProveedores,
+            pagosEfectivo: this.pagosEfectivo,
+            proveedoresRecurrentes: this.proveedoresRecurrentes,
             fechaExportacion: new Date().toISOString(),
-            version: '2.0-firebase'
+            version: '3.0-firebase-4categorias'
         };
 
         const dataStr = JSON.stringify(datos, null, 2);
         const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
 
-        const exportFileDefaultName = `ferreteria-control-${new Date().toISOString().split('T')[0]}.json`;
+        const exportFileDefaultName = `ferreteria-control-completo-${new Date().toISOString().split('T')[0]}.json`;
 
         const linkElement = document.createElement('a');
         linkElement.setAttribute('href', dataUri);
@@ -379,146 +623,31 @@ class ControlFerreteriaFirebase {
         linkElement.click();
     }
 
-    async importarDatos() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-
-        input.onchange = async (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            try {
-                const text = await file.text();
-                const datos = JSON.parse(text);
-
-                if (!datos.ingresos || !datos.gastos) {
-                    alert('Formato de archivo inválido');
-                    return;
-                }
-
-                if (confirm('¿Estás seguro? Esto reemplazará todos los datos actuales.')) {
-                    // Si Firebase está disponible, subir datos
-                    if (this.db && this.user) {
-                        await this.uploadDataToFirebase(datos);
-                    } else {
-                        // Solo local
-                        this.ingresos = datos.ingresos;
-                        this.gastos = datos.gastos;
-                        this.updateIngresosTable();
-                        this.updateGastosTable();
-                        this.updateTotales();
-                        this.saveToLocalStorage();
-                    }
-                    
-                    alert('Datos importados correctamente');
-                }
-            } catch (error) {
-                console.error('Error importando datos:', error);
-                alert('Error al importar datos');
-            }
-        };
-
-        input.click();
-    }
-
-    async uploadDataToFirebase(datos) {
-        try {
-            const batch = writeBatch(this.db);
-            
-            // Limpiar colecciones actuales (esto se hará a través de los listeners)
-            // Agregar nuevos datos
-            datos.ingresos.forEach(ingreso => {
-                const docRef = doc(collection(this.db, 'ingresos'));
-                batch.set(docRef, {
-                    ...ingreso,
-                    timestamp: serverTimestamp()
-                });
-            });
-
-            datos.gastos.forEach(gasto => {
-                const docRef = doc(collection(this.db, 'gastos'));
-                batch.set(docRef, {
-                    ...gasto,
-                    timestamp: serverTimestamp()
-                });
-            });
-
-            await batch.commit();
-            this.updateSyncStatus('Datos subidos', 'success');
-            
-        } catch (error) {
-            console.error('Error subiendo datos a Firebase:', error);
-            this.updateSyncStatus('Error en importación', 'error');
-            throw error;
-        }
-    }
-
-    limpiarTodo() {
-        if (confirm('¿Estás COMPLETAMENTE seguro? Esta acción eliminará TODOS los datos y NO se puede deshacer.')) {
-            if (confirm('ÚLTIMA CONFIRMACIÓN: ¿Eliminar todos los ingresos y gastos?')) {
-                // Limpiar Firebase si está disponible
-                if (this.db && this.user) {
-                    this.clearFirebaseData();
-                }
-                
-                // Limpiar datos locales
-                this.ingresos = [];
-                this.gastos = [];
-                this.updateIngresosTable();
-                this.updateGastosTable();
-                this.updateTotales();
-                this.saveToLocalStorage();
-                
-                alert('Todos los datos han sido eliminados');
-            }
-        }
-    }
-
-    async clearFirebaseData() {
-        try {
-            const batch = writeBatch(this.db);
-            
-            // Esto es una aproximación - en producción usarías Cloud Functions
-            // para eliminar colecciones completas
-            this.ingresos.forEach(ingreso => {
-                if (ingreso.id) {
-                    batch.delete(doc(this.db, 'ingresos', ingreso.id));
-                }
-            });
-
-            this.gastos.forEach(gasto => {
-                if (gasto.id) {
-                    batch.delete(doc(this.db, 'gastos', gasto.id));
-                }
-            });
-
-            await batch.commit();
-            this.updateSyncStatus('Datos eliminados', 'success');
-            
-        } catch (error) {
-            console.error('Error eliminando datos de Firebase:', error);
-            this.updateSyncStatus('Error al limpiar', 'error');
-        }
-    }
-
     setupEventListeners() {
         // Botones principales
-        document.getElementById('btn-agregar-ingreso')?.addEventListener('click', () => this.agregarIngreso());
-        document.getElementById('btn-agregar-gasto')?.addEventListener('click', () => this.agregarGasto());
+        document.getElementById('btn-agregar-ingreso-mp')?.addEventListener('click', () => this.agregarIngresoMP());
+        document.getElementById('btn-agregar-venta-mostrador')?.addEventListener('click', () => this.agregarVentaMostrador());
+        document.getElementById('btn-agregar-pago-proveedor')?.addEventListener('click', () => this.agregarPagoProveedor());
+        document.getElementById('btn-agregar-pago-efectivo')?.addEventListener('click', () => this.agregarPagoEfectivo());
         
         // Botones de gestión
         document.getElementById('btn-exportar')?.addEventListener('click', () => this.exportarDatos());
-        document.getElementById('btn-importar')?.addEventListener('click', () => this.importarDatos());
-        document.getElementById('btn-limpiar')?.addEventListener('click', () => this.limpiarTodo());
-
+        
         // Enter en formularios
-        document.getElementById('monto-ingreso')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.agregarIngreso();
+        document.getElementById('monto-ingreso-mp')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.agregarIngresoMP();
         });
         
-        document.getElementById('monto-gasto')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.agregarGasto();
+        document.getElementById('monto-venta-mostrador')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.agregarVentaMostrador();
+        });
+
+        document.getElementById('monto-pago-proveedor')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.agregarPagoProveedor();
+        });
+
+        document.getElementById('monto-pago-efectivo')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.agregarPagoEfectivo();
         });
 
         // Detectar conexión/desconexión
@@ -534,8 +663,10 @@ class ControlFerreteriaFirebase {
 
     // Cleanup al cerrar
     destroy() {
-        if (this.unsubscribeIngresos) this.unsubscribeIngresos();
-        if (this.unsubscribeGastos) this.unsubscribeGastos();
+        if (this.unsubscribeIngresosMP) this.unsubscribeIngresosMP();
+        if (this.unsubscribeVentasMostrador) this.unsubscribeVentasMostrador();
+        if (this.unsubscribePagosProveedores) this.unsubscribePagosProveedores();
+        if (this.unsubscribePagosEfectivo) this.unsubscribePagosEfectivo();
     }
 }
 
