@@ -17,8 +17,8 @@ Aplicación web completa para la gestión integral de ferreterías, incluyendo c
 
 ## 🌐 Acceso
 
-- **Aplicación**: [https://tu-usuario.github.io/ferreteria-control/](https://tu-usuario.github.io/ferreteria-control/)
-- **Aplicación directa**: [https://tu-usuario.github.io/ferreteria-control/app/](https://tu-usuario.github.io/ferreteria-control/app/)
+- **Aplicación**: [https://eshe87-ciudad.github.io/ferreteria-control/](https://eshe87-ciudad.github.io/ferreteria-control/)
+- **Aplicación directa**: [https://eshe87-ciudad.github.io/ferreteria-control/app/](https://eshe87-ciudad.github.io/ferreteria-control/app/)
 
 ## 📱 Uso
 
