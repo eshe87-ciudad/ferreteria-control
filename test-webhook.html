@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Test Webhook MercadoPago</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .test-section {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border-left: 5px solid #0099ff;
+        }
+        
+        .test-button {
+            background: linear-gradient(45deg, #0099ff, #00c9ff);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 153, 255, 0.3);
+        }
+        
+        .results {
+            background: #fff;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            min-height: 100px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .info { color: #17a2b8; }
+        
+        .webhook-url {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin: 10px 0;
+            border: 1px solid #dee2e6;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-online { background-color: #28a745; }
+        .status-offline { background-color: #dc3545; }
+        .status-loading { background-color: #ffc107; animation: pulse 1s infinite; }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Test Webhook MercadoPago</h1>
+        
+        <div class="test-section">
+            <h3>📡 Estado del Servidor</h3>
+            <div id="server-status">
+                <span class="status-indicator status-loading"></span>
+                Verificando servidor...
+            </div>
+            <button class="test-button" onclick="checkServerHealth()">
+                🏥 Verificar Salud del Servidor
+            </button>
+            <div id="health-results" class="results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🌐 Test de Conectividad ngrok</h3>
+            <div class="webhook-url">
+                URL ngrok: https://unbrooding-transpirable-minerva.ngrok-free.dev/webhook/mercadopago
+            </div>
+            <button class="test-button" onclick="testNgrokConnection()">
+                🌍 Test Conexión Externa
+            </button>
+            <div id="ngrok-results" class="results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>⚡ Test Webhook MercadoPago</h3>
+            <button class="test-button" onclick="registerWebhookCorrect()">
+                📝 Registrar Webhook (Método Correcto)
+            </button>
+            <button class="test-button" onclick="testWebhookDirect()">
+                🎯 Test Directo del Webhook
+            </button>
+            <div id="webhook-results" class="results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔍 Diagnóstico Avanzado</h3>
+            <button class="test-button" onclick="checkMercadoPagoAPI()">
+                🔑 Verificar API Token
+            </button>
+            <button class="test-button" onclick="listWebhooks()">
+                📋 Listar Webhooks Existentes
+            </button>
+            <div id="diagnostic-results" class="results"></div>
+        </div>
+    </div>
+
+    <script>
+        const ACCESS_TOKEN = 'TU_ACCESS_TOKEN_AQUI';
+        const NGROK_URL = 'https://unbrooding-transpirable-minerva.ngrok-free.dev';
+        
+        // 🏥 Verificar salud del servidor
+        async function checkServerHealth() {
+            const resultsDiv = document.getElementById('health-results');
+            const statusDiv = document.getElementById('server-status');
+            
+            try {
+                resultsDiv.innerHTML = '⏳ Verificando servidor local...';
+                
+                const response = await fetch('http://localhost:3000/health');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusDiv.innerHTML = '<span class="status-indicator status-online"></span>Servidor ONLINE';
+                    resultsDiv.innerHTML = `✅ Servidor funcionando correctamente:
+                    
+Estado: ${data.status}
+Tiempo activo: ${Math.floor(data.uptime)} segundos
+Timestamp: ${data.timestamp}`;
+                    resultsDiv.className = 'results success';
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<span class="status-indicator status-offline"></span>Servidor OFFLINE';
+                resultsDiv.innerHTML = `❌ Error conectando al servidor:
+                
+${error.message}
+
+🔧 Verifica que el servidor esté ejecutándose en puerto 3000`;
+                resultsDiv.className = 'results error';
+            }
+        }
+        
+        // 🌍 Test conexión ngrok
+        async function testNgrokConnection() {
+            const resultsDiv = document.getElementById('ngrok-results');
+            
+            try {
+                resultsDiv.innerHTML = '⏳ Probando conexión a ngrok...';
+                
+                const response = await fetch(`${NGROK_URL}/health`, {
+                    method: 'GET',
+                    headers: {
+                        'ngrok-skip-browser-warning': 'true'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultsDiv.innerHTML = `✅ ngrok funcionando correctamente:
+                    
+URL: ${NGROK_URL}
+Estado: ${data.status}
+Respuesta exitosa desde el exterior`;
+                    resultsDiv.className = 'results success';
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `❌ Error con ngrok:
+                
+${error.message}
+
+🔧 Verifica que ngrok esté ejecutándose correctamente`;
+                resultsDiv.className = 'results error';
+            }
+        }
+        
+        // 📝 Registrar webhook método correcto
+        async function registerWebhookCorrect() {
+            const resultsDiv = document.getElementById('webhook-results');
+            
+            try {
+                resultsDiv.innerHTML = '⏳ Registrando webhook en MercadoPago...';
+                
+                const webhookData = {
+                    url: `${NGROK_URL}/webhook/mercadopago`,
+                    events: [
+                        "payment",
+                        "plan",
+                        "subscription", 
+                        "invoice",
+                        "point_integration_wh",
+                        "topic"
+                    ]
+                };
+                
+                const response = await fetch('https://api.mercadopago.com/v1/webhooks', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(webhookData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultsDiv.innerHTML = `✅ Webhook registrado exitosamente:
+                    
+ID: ${data.id}
+URL: ${data.url}
+Events: ${data.events.join(', ')}
+Estado: ${data.status || 'active'}
+Fecha: ${data.date_created}`;
+                    resultsDiv.className = 'results success';
+                } else {
+                    resultsDiv.innerHTML = `❌ Error registrando webhook:
+                    
+Código: ${response.status}
+Error: ${data.message || data.error}
+Detalles: ${JSON.stringify(data, null, 2)}`;
+                    resultsDiv.className = 'results error';
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `❌ Error de conexión:
+                
+${error.message}`;
+                resultsDiv.className = 'results error';
+            }
+        }
+        
+        // 🎯 Test directo del webhook
+        async function testWebhookDirect() {
+            const resultsDiv = document.getElementById('webhook-results');
+            
+            try {
+                resultsDiv.innerHTML = '⏳ Enviando test directo al webhook...';
+                
+                const testData = {
+                    action: "payment.created",
+                    type: "payment",
+                    data: {
+                        id: "test_123456789"
+                    },
+                    date_created: new Date().toISOString(),
+                    user_id: "test_user"
+                };
+                
+                const response = await fetch(`${NGROK_URL}/webhook/mercadopago`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                if (response.ok) {
+                    resultsDiv.innerHTML = `✅ Webhook responde correctamente:
+                    
+Estado: ${response.status}
+Respuesta: ${await response.text()}
+Test enviado: ${JSON.stringify(testData, null, 2)}`;
+                    resultsDiv.className = 'results success';
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `❌ Error en test directo:
+                
+${error.message}`;
+                resultsDiv.className = 'results error';
+            }
+        }
+        
+        // 🔑 Verificar API token
+        async function checkMercadoPagoAPI() {
+            const resultsDiv = document.getElementById('diagnostic-results');
+            
+            try {
+                resultsDiv.innerHTML = '⏳ Verificando token de MercadoPago...';
+                
+                const response = await fetch('https://api.mercadopago.com/v1/account/settings', {
+                    headers: {
+                        'Authorization': `Bearer ${ACCESS_TOKEN}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultsDiv.innerHTML = `✅ Token válido:
+                    
+País: ${data.country_id}
+Sitio: ${data.site_id}
+Categoría: ${data.category_id}`;
+                    resultsDiv.className = 'results success';
+                } else {
+                    resultsDiv.innerHTML = `❌ Token inválido:
+                    
+${JSON.stringify(data, null, 2)}`;
+                    resultsDiv.className = 'results error';
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `❌ Error verificando token:
+                
+${error.message}`;
+                resultsDiv.className = 'results error';
+            }
+        }
+        
+        // 📋 Listar webhooks existentes
+        async function listWebhooks() {
+            const resultsDiv = document.getElementById('diagnostic-results');
+            
+            try {
+                resultsDiv.innerHTML = '⏳ Obteniendo webhooks existentes...';
+                
+                const response = await fetch('https://api.mercadopago.com/v1/webhooks', {
+                    headers: {
+                        'Authorization': `Bearer ${ACCESS_TOKEN}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    if (data.length === 0) {
+                        resultsDiv.innerHTML = '📋 No hay webhooks registrados en tu cuenta';
+                    } else {
+                        resultsDiv.innerHTML = `📋 Webhooks existentes (${data.length}):
+                        
+${data.map(webhook => `
+ID: ${webhook.id}
+URL: ${webhook.url}
+Events: ${webhook.events.join(', ')}
+Estado: ${webhook.status}
+Creado: ${webhook.date_created}
+---`).join('\n')}`;
+                    }
+                    resultsDiv.className = 'results info';
+                } else {
+                    resultsDiv.innerHTML = `❌ Error obteniendo webhooks:
+                    
+${JSON.stringify(data, null, 2)}`;
+                    resultsDiv.className = 'results error';
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `❌ Error:
+                
+${error.message}`;
+                resultsDiv.className = 'results error';
+            }
+        }
+        
+        // Auto-verificar servidor al cargar
+        window.onload = function() {
+            checkServerHealth();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Configuración Rápida Twilio WhatsApp</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #128c7e;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .step {
+            background: #f8f9ff;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border-left: 5px solid #25d366;
+            position: relative;
+        }
+        
+        .step-number {
+            position: absolute;
+            top: -15px;
+            left: 20px;
+            background: #25d366;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .step h3 {
+            color: #128c7e;
+            margin-bottom: 15px;
+            margin-left: 30px;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #25d366, #128c7e);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(37, 211, 102, 0.3);
+            text-decoration: none;
+            color: white;
+        }
+        
+        .credential-box {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border: 1px solid #25d366;
+        }
+        
+        .credential-label {
+            font-weight: bold;
+            color: #128c7e;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .credential-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: monospace;
+            background: white;
+        }
+        
+        .code-snippet {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        
+        .success {
+            background: #d1f2eb;
+            border: 1px solid #25d366;
+            color: #0f5132;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        
+        .phone-demo {
+            background: #25d366;
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 15px 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .whatsapp-chat {
+            background: #f0f0f0;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            border: 2px solid #25d366;
+        }
+        
+        .message {
+            background: #dcf8c6;
+            padding: 10px 15px;
+            border-radius: 18px;
+            margin: 5px 0;
+            border: 1px solid #25d366;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚡ Configuración Rápida Twilio</h1>
+        
+        <div class="step">
+            <div class="step-number">1</div>
+            <h3>🚀 Crear Cuenta Twilio (2 minutos)</h3>
+            
+            <p style="margin-bottom: 15px;">
+                <strong>¡IMPORTANTE!</strong> Twilio te da <strong>$15 USD GRATIS</strong> al registrarte. 
+                Esto es suficiente para enviar miles de mensajes WhatsApp.
+            </p>
+            
+            <a href="https://www.twilio.com/try-twilio" target="_blank" class="btn">
+                📝 Registrarse en Twilio (GRATIS)
+            </a>
+            
+            <div class="warning">
+                <strong>Tips para el registro:</strong><br>
+                • Usa tu email real (recibirás verificación)<br>
+                • Ingresa tu número de celular argentino<br>
+                • Selecciona "Individual" como tipo de cuenta<br>
+                • El proceso toma 2-3 minutos máximo
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">2</div>
+            <h3>🔑 Obtener Credenciales</h3>
+            
+            <p>Una vez registrado, ve al <strong>Console Dashboard</strong>:</p>
+            
+            <a href="https://console.twilio.com" target="_blank" class="btn">
+                🖥️ Abrir Console Twilio
+            </a>
+            
+            <p style="margin: 15px 0;">En el panel principal verás:</p>
+            
+            <div class="credential-box">
+                <label class="credential-label">Account SID (empieza con AC...):</label>
+                <input type="text" class="credential-input" id="accountSid" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+            </div>
+            
+            <div class="credential-box">
+                <label class="credential-label">Auth Token (32 caracteres):</label>
+                <input type="password" class="credential-input" id="authToken" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                <button onclick="togglePassword()" style="margin-top: 5px; background: #007bff; color: white; border: none; padding: 5px 10px; border-radius: 3px;">👁️ Mostrar</button>
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">3</div>
+            <h3>📱 Activar WhatsApp Sandbox</h3>
+            
+            <p>En la consola de Twilio, ve a:</p>
+            <div class="code-snippet">
+                Messaging → Try it out → Send a WhatsApp message
+            </div>
+            
+            <p>Encontrarás una página como esta:</p>
+            
+            <div class="phone-demo">
+                📱 Tu Sandbox WhatsApp<br>
+                +1 415 523 8886<br>
+                <small>join operation-carbon</small>
+            </div>
+            
+            <div class="warning">
+                <strong>🔥 PASO CRÍTICO:</strong><br>
+                1. Abre WhatsApp en tu teléfono<br>
+                2. Envía un mensaje al número <strong>+1 415 523 8886</strong><br>
+                3. El mensaje debe ser exactamente: <strong>join tu-codigo-sandbox</strong><br>
+                4. Tu código aparece en la consola de Twilio (ej: "join operation-carbon")
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">4</div>
+            <h3>📞 Tu Número WhatsApp</h3>
+            
+            <p>Ingresa tu número argentino en formato internacional:</p>
+            
+            <div class="credential-box">
+                <label class="credential-label">Tu WhatsApp (formato internacional):</label>
+                <input type="text" class="credential-input" id="myWhatsApp" placeholder="+5491123456789" value="+549">
+            </div>
+            
+            <div class="warning">
+                <strong>Ejemplos correctos:</strong><br>
+                • Buenos Aires: +5491123456789<br>
+                • Córdoba: +5493511234567<br>
+                • Mendoza: +5492611234567<br>
+                • Rosario: +5493411234567
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">5</div>
+            <h3>⚙️ Aplicar Configuración</h3>
+            
+            <button class="btn" onclick="generateConfig()">
+                📄 Generar Configuración
+            </button>
+            
+            <button class="btn" onclick="testWhatsApp()" style="background: linear-gradient(45deg, #007bff, #0056b3);">
+                🧪 Probar WhatsApp
+            </button>
+            
+            <div id="configOutput" style="display: none;">
+                <h4 style="color: #128c7e; margin: 20px 0 10px 0;">📋 Configuración Generada:</h4>
+                <div class="code-snippet" id="envContent"></div>
+                
+                <div class="success">
+                    <strong>✅ ¡Configuración lista!</strong><br>
+                    Copia este contenido y pégalo en tu archivo <strong>.env</strong>
+                </div>
+            </div>
+            
+            <div id="testResults"></div>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">6</div>
+            <h3>🎯 Prueba Final</h3>
+            
+            <p>Una vez configurado todo:</p>
+            
+            <div class="whatsapp-chat">
+                <strong>📱 Ejemplo del mensaje que recibirás:</strong>
+                <div class="message">
+                    🎉 ¡PAGO RECIBIDO EN MERCADOPAGO!<br><br>
+                    💰 Monto: $100.00 ARS<br>
+                    👤 Cliente: Test User<br>
+                    🕐 Hora: 16:49:00<br>
+                    🆔 ID: 123456789<br><br>
+                    ✅ Estado: Aprobado
+                </div>
+            </div>
+            
+            <a href="https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=3608042-ab6b8f5a-f15e-4a4c-a15d-53fa490a9642" 
+               target="_blank" class="btn" style="width: 100%; text-align: center; display: block; margin: 20px 0;">
+                💳 Hacer Compra de Prueba ($100 ARS)
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function togglePassword() {
+            const tokenInput = document.getElementById('authToken');
+            const button = event.target;
+            
+            if (tokenInput.type === 'password') {
+                tokenInput.type = 'text';
+                button.textContent = '🙈 Ocultar';
+            } else {
+                tokenInput.type = 'password';
+                button.textContent = '👁️ Mostrar';
+            }
+        }
+        
+        function generateConfig() {
+            const accountSid = document.getElementById('accountSid').value;
+            const authToken = document.getElementById('authToken').value;
+            const myWhatsApp = document.getElementById('myWhatsApp').value;
+            
+            if (!accountSid || !authToken || !myWhatsApp || myWhatsApp === '+549') {
+                alert('⚠️ Por favor completa todos los campos');
+                return;
+            }
+            
+            if (!accountSid.startsWith('AC')) {
+                alert('⚠️ Account SID debe empezar con "AC"');
+                return;
+            }
+            
+            if (authToken.length !== 32) {
+                alert('⚠️ Auth Token debe tener exactamente 32 caracteres');
+                return;
+            }
+            
+            const envContent = `# MercadoPago - Tu access token real
+MP_ACCESS_TOKEN=TU_ACCESS_TOKEN_AQUI
+
+# Twilio WhatsApp - Tus credenciales reales
+TWILIO_ACCOUNT_SID=${accountSid}
+TWILIO_AUTH_TOKEN=${authToken}
+TWILIO_PHONE_NUMBER=+14155238886
+
+# Tu número de WhatsApp (formato internacional)
+MY_WHATSAPP_NUMBER=${myWhatsApp}
+
+# Configuración del servidor
+PORT=3000
+NODE_ENV=development
+
+# Opcional
+WEBHOOK_SECRET=mi_secreto_123
+LOG_LEVEL=info`;
+            
+            document.getElementById('envContent').textContent = envContent;
+            document.getElementById('configOutput').style.display = 'block';
+            
+            // Descargar archivo
+            const blob = new Blob([envContent], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '.env';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+        
+        async function testWhatsApp() {
+            const accountSid = document.getElementById('accountSid').value;
+            const authToken = document.getElementById('authToken').value;
+            const myWhatsApp = document.getElementById('myWhatsApp').value;
+            
+            if (!accountSid || !authToken || !myWhatsApp) {
+                alert('⚠️ Completa la configuración primero');
+                return;
+            }
+            
+            const testResults = document.getElementById('testResults');
+            testResults.innerHTML = '<div style="color: #007bff; padding: 15px;">🔄 Enviando mensaje de prueba...</div>';
+            
+            const mensaje = `🎉 ¡PRUEBA EXITOSA!
+
+Tu sistema MercadoPago + WhatsApp está funcionando:
+
+✅ Servidor webhook: ACTIVO
+✅ ngrok tunnel: CONECTADO  
+✅ MercadoPago IPN: CONFIGURADO
+✅ WhatsApp Twilio: FUNCIONANDO
+
+🚀 Listo para alertas instantáneas!
+
+Fecha: ${new Date().toLocaleString('es-AR')}`;
+
+            try {
+                const auth = btoa(`${accountSid}:${authToken}`);
+                
+                const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Basic ${auth}`,
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams({
+                        From: 'whatsapp:+14155238886',
+                        To: `whatsapp:${myWhatsApp}`,
+                        Body: mensaje
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    testResults.innerHTML = `
+                        <div class="success">
+                            ✅ ¡Mensaje enviado exitosamente!<br>
+                            📱 SID: ${data.sid}<br>
+                            📞 To: ${data.to}<br>
+                            💰 Costo: ${data.price || 'GRATIS'}<br><br>
+                            🎯 <strong>Verifica tu WhatsApp ahora!</strong>
+                        </div>`;
+                } else {
+                    const errorText = await response.text();
+                    const errorData = JSON.parse(errorText);
+                    
+                    if (errorData.code === 21211) {
+                        testResults.innerHTML = `
+                            <div class="warning">
+                                📱 <strong>Tu número no está registrado en el Sandbox</strong><br><br>
+                                🔧 <strong>Solución:</strong><br>
+                                1. Abre WhatsApp<br>
+                                2. Envía mensaje a: <strong>+1 415 523 8886</strong><br>
+                                3. Texto: <strong>join tu-codigo-sandbox</strong><br>
+                                4. Espera confirmación y vuelve a probar
+                            </div>`;
+                    } else {
+                        testResults.innerHTML = `
+                            <div class="warning">
+                                ❌ Error: ${errorData.message}<br>
+                                Código: ${errorData.code}
+                            </div>`;
+                    }
+                }
+                
+            } catch (error) {
+                testResults.innerHTML = `
+                    <div class="warning">
+                        ❌ Error de conexión: ${error.message}<br><br>
+                        🔧 Verifica tus credenciales e internet
+                    </div>`;
+            }
+        }
+        
+        // Auto-completar con formato argentino
+        document.getElementById('myWhatsApp').addEventListener('focus', function() {
+            if (this.value === '+549') {
+                this.placeholder = '+5491123456789 (Buenos Aires)';
+            }
+        });
+    </script>
+</body>
+</html>

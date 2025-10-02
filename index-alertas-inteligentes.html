@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Ferretería - Sistema de Alertas Inteligentes</title>
+    <link rel="stylesheet" href="styles-ferreteria.css">
+    
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- jsPDF para exportar reportes a PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        /* Estilos para el sistema de alertas */
+        .alertas-config {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid #e0e0e0;
+        }
+
+        .alertas-config h3 {
+            margin: 0 0 1rem 0;
+            color: #dc3545;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .alertas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .alerta-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .alerta-card h4 {
+            margin: 0 0 1rem 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .alerta-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #4CAF50;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .alerta-config-item {
+            margin-bottom: 1rem;
+        }
+
+        .alerta-config-item label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 0.3rem;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .alerta-config-item input, .alerta-config-item select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            box-sizing: border-box;
+        }
+
+        .alertas-activas {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .alertas-activas h3 {
+            margin: 0 0 1rem 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .alerta-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+            border-left: 4px solid #ffc107;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .alerta-item.success { border-left-color: #28a745; background: #d4edda; }
+        .alerta-item.warning { border-left-color: #ffc107; background: #fff3cd; }
+        .alerta-item.danger { border-left-color: #dc3545; background: #f8d7da; }
+        .alerta-item.info { border-left-color: #17a2b8; background: #d1ecf1; }
+
+        .alerta-content {
+            flex: 1;
+        }
+
+        .alerta-titulo {
+            font-weight: bold;
+            margin-bottom: 0.2rem;
+        }
+
+        .alerta-descripcion {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .alerta-tiempo {
+            font-size: 0.8rem;
+            color: #999;
+            margin-left: 1rem;
+        }
+
+        .alerta-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-alerta {
+            padding: 0.3rem 0.6rem;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background-color 0.3s;
+        }
+
+        .btn-alerta.dismiss {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-alerta.dismiss:hover {
+            background: #5a6268;
+        }
+
+        .sonidos-config {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .sonido-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sonido-item button {
+            padding: 0.3rem 0.6rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .estadisticas-alertas {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-alerta {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .stat-alerta h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        .stat-alerta span {
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .notification-popup {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 1rem;
+            border-radius: 4px;
+            z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            max-width: 350px;
+            transform: translateX(400px);
+            transition: transform 0.3s ease-out;
+        }
+
+        .notification-popup.show {
+            transform: translateX(0);
+        }
+
+        .notification-popup.danger {
+            background: #dc3545;
+        }
+
+        .notification-popup.warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .notification-popup.info {
+            background: #17a2b8;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .pulse { animation: pulse 2s infinite; }
+
+        .stat-alerta:nth-child(1) { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); }
+        .stat-alerta:nth-child(2) { background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); }
+        .stat-alerta:nth-child(3) { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); }
+        .stat-alerta:nth-child(4) { background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); }
+
+        @media (max-width: 768px) {
+            .alertas-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .estadisticas-alertas {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .alerta-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            
+            .alerta-actions {
+                align-self: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚨 Control Ferretería - Alertas Inteligentes</h1>
+            <p>Sistema de Monitoreo • Alertas Personalizables • Notificaciones en Tiempo Real</p>
+            
+            <!-- Configuración MercadoPago (simplificada) -->
+            <div style="background: #e3f2fd; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+                <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 1rem; align-items: center;">
+                    <div>
+                        <input type="password" id="mp-access-token" placeholder="APP_USR-xxxxxxxxxx" style="width: 100%; padding: 0.5rem;">
+                    </div>
+                    <div>
+                        <select id="mp-environment" style="padding: 0.5rem;">
+                            <option value="sandbox">Sandbox</option>
+                            <option value="production">Producción</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button id="btn-conectar-mp" class="btn-mp" style="background: #007bff; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">🔗 Conectar</button>
+                    </div>
+                </div>
+                <div id="mp-status" style="text-align: center; margin-top: 0.5rem; font-weight: bold; color: #666;">
+                    🔴 Conecta MercadoPago para activar las alertas
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <!-- Estadísticas de Alertas -->
+            <section class="estadisticas-alertas">
+                <div class="stat-alerta">
+                    <h4>📊 Alertas Hoy</h4>
+                    <span id="stat-alertas-hoy">0</span>
+                </div>
+                <div class="stat-alerta">
+                    <h4>⚠️ Alertas Activas</h4>
+                    <span id="stat-alertas-activas">0</span>
+                </div>
+                <div class="stat-alerta">
+                    <h4>🚨 Críticas</h4>
+                    <span id="stat-alertas-criticas">0</span>
+                </div>
+                <div class="stat-alerta">
+                    <h4>💰 Pago Más Alto</h4>
+                    <span id="stat-pago-alto">$0</span>
+                </div>
+            </section>
+
+            <!-- Configuración de Alertas -->
+            <section class="alertas-config">
+                <h3>⚙️ Configuración de Alertas</h3>
+                
+                <div class="alertas-grid">
+                    <!-- Alerta de Pagos Altos -->
+                    <div class="alerta-card">
+                        <h4>💰 Pagos Altos</h4>
+                        <div class="alerta-toggle">
+                            <label class="switch">
+                                <input type="checkbox" id="alert-high-payment">
+                                <span class="slider"></span>
+                            </label>
+                            <span>Activar alertas de pagos altos</span>
+                        </div>
+                        <div class="alerta-config-item">
+                            <label>Monto mínimo ($):</label>
+                            <input type="number" id="high-payment-amount" value="50000" min="1000" step="1000">
+                        </div>
+                        <div class="alerta-config-item">
+                            <label>Sonido:</label>
+                            <select id="high-payment-sound">
+                                <option value="chime">🔔 Campanita</option>
+                                <option value="ding">🎵 Ding</option>
+                                <option value="cash">💰 Caja registradora</option>
+                                <option value="success">✅ Éxito</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Alerta de Fallos de Pago -->
+                    <div class="alerta-card">
+                        <h4>❌ Fallos de Pago</h4>
+                        <div class="alerta-toggle">
+                            <label class="switch">
+                                <input type="checkbox" id="alert-failed-payment" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <span>Activar alertas de pagos fallidos</span>
+                        </div>
+                        <div class="alerta-config-item">
+                            <label>Incluir rechazos por:</label>
+                            <select id="failed-payment-reasons">
+                                <option value="all">Todos los motivos</option>
+                                <option value="insufficient_funds">Fondos insuficientes</option>
+                                <option value="card_disabled">Tarjeta deshabilitada</option>
+                                <option value="high_risk">Alto riesgo</option>
+                            </select>
+                        </div>
+                        <div class="alerta-config-item">
+                            <label>Sonido:</label>
+                            <select id="failed-payment-sound">
+                                <option value="error">🚨 Error</option>
+                                <option value="beep">📢 Beep</option>
+                                <option value="alert">⚠️ Alerta</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Alerta de Metas Diarias -->
+                    <div class="alerta-card">
+                        <h4>🎯 Metas Diarias</h4>
+                        <div class="alerta-toggle">
+                            <label class="switch">
+                                <input type="checkbox" id="alert-daily-goal">
+                                <span class="slider"></span>
+                            </label>
+                            <span>Activar alertas de metas</span>
+                        </div>
+                        <div class="alerta-config-item">
+                            <label>Meta diaria ($):</label>
+                            <input type="number" id="daily-goal-amount" value="100000" min="10000" step="5000">
+                        </div>
+                        <div class="alerta-config-item">
+                            <label>Alertar al alcanzar:</label>
+                            <select id="daily-goal-percentage">
+                                <option value="50">50% de la meta</option>
+                                <option value="75">75% de la meta</option>
+                                <option value="90">90% de la meta</option>
+                                <option value="100">100% de la meta</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Alerta de Actividad Inusual -->
+                    <div class="alerta-card">
+                        <h4>🔍 Actividad Inusual</h4>
+                        <div class="alerta-toggle">
+                            <label class="switch">
+                                <input type="checkbox" id="alert-unusual-activity">
+                                <span class="slider"></span>
+                            </label>
+                            <span>Detectar patrones anormales</span>
+                        </div>
+                        <div class="alerta-config-item">
+                            <label>Sensibilidad:</label>
+                            <select id="unusual-activity-sensitivity">
+                                <option value="low">Baja - Solo cambios extremos</option>
+                                <option value="medium" selected>Media - Cambios significativos</option>
+                                <option value="high">Alta - Cambios menores</option>
+                            </select>
+                        </div>
+                        <div class="alerta-config-item">
+                            <label>Comparar con:</label>
+                            <select id="unusual-activity-period">
+                                <option value="7">Últimos 7 días</option>
+                                <option value="15" selected>Últimos 15 días</option>
+                                <option value="30">Últimos 30 días</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Alerta de Horarios -->
+                    <div class="alerta-card">
+                        <h4>🕐 Horarios Específicos</h4>
+                        <div class="alerta-toggle">
+                            <label class="switch">
+                                <input type="checkbox" id="alert-schedule">
+                                <span class="slider"></span>
+                            </label>
+                            <span>Alertas por horario</span>
+                        </div>
+                        <div class="alerta-config-item">
+                            <label>Resumen cada:</label>
+                            <select id="schedule-frequency">
+                                <option value="60">1 hora</option>
+                                <option value="180">3 horas</option>
+                                <option value="360">6 horas</option>
+                                <option value="720">12 horas</option>
+                            </select>
+                        </div>
+                        <div class="alerta-config-item">
+                            <label>Incluir en resumen:</label>
+                            <select id="schedule-content">
+                                <option value="summary">Solo resumen</option>
+                                <option value="detailed">Detalles completos</option>
+                                <option value="top_payments">Pagos destacados</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Alerta de Reembolsos -->
+                    <div class="alerta-card">
+                        <h4>💸 Reembolsos</h4>
+                        <div class="alerta-toggle">
+                            <label class="switch">
+                                <input type="checkbox" id="alert-refunds" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <span>Alertas de devoluciones</span>
+                        </div>
+                        <div class="alerta-config-item">
+                            <label>Alertar reembolsos de:</label>
+                            <select id="refund-minimum">
+                                <option value="0">Cualquier monto</option>
+                                <option value="10000">Más de $10,000</option>
+                                <option value="25000">Más de $25,000</option>
+                                <option value="50000">Más de $50,000</option>
+                            </select>
+                        </div>
+                        <div class="alerta-config-item">
+                            <label>Incluir reembolsos:</label>
+                            <select id="refund-types">
+                                <option value="all">Todos</option>
+                                <option value="partial">Solo parciales</option>
+                                <option value="total">Solo totales</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuración de Sonidos -->
+                <div style="margin-top: 2rem;">
+                    <h4>🔊 Configuración de Sonidos</h4>
+                    <div class="sonidos-config">
+                        <div class="sonido-item">
+                            <span>Volumen general:</span>
+                            <input type="range" id="volume-general" min="0" max="100" value="50" style="flex: 1;">
+                            <button onclick="testSound('general')">🔊 Probar</button>
+                        </div>
+                        <div class="sonido-item">
+                            <span>Notificaciones silenciosas:</span>
+                            <label class="switch" style="margin-left: auto;">
+                                <input type="checkbox" id="silent-mode">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Alertas Activas -->
+            <section class="alertas-activas">
+                <h3>🔔 Alertas Activas</h3>
+                <div id="alertas-container">
+                    <div style="text-align: center; color: #666; padding: 2rem;">
+                        No hay alertas activas. Conecta MercadoPago para comenzar el monitoreo.
+                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 1rem;">
+                    <button id="btn-clear-all-alerts" class="btn-alerta" style="background: #6c757d; color: white; padding: 0.5rem 1rem;">🗑️ Limpiar Todas</button>
+                    <button id="btn-test-alerts" class="btn-alerta" style="background: #007bff; color: white; padding: 0.5rem 1rem; margin-left: 0.5rem;">🧪 Probar Alertas</button>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="info-guardado">
+                <p><strong>🚨 Estado Alertas:</strong> <span id="estado-alertas">Configurando...</span></p>
+                <p><strong>📊 Tecnología:</strong> Alertas Inteligentes + MercadoPago API + Notificaciones Push</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Variables globales para el sistema de alertas
+        let mpConectado = false;
+        let accessToken = '';
+        let environment = 'sandbox';
+        let alertasActivas = [];
+        let alertasConfig = {};
+        let alertasHoy = 0;
+        let pagoMasAlto = 0;
+        let intervalosActivos = [];
+        let ultimaVerificacion = new Date();
+
+        // Datos de prueba para demostración
+        let pagosMercadoPago = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeAlertas();
+            setupEventListeners();
+            cargarConfiguracionAlertas();
+        });
+
+        function setupEventListeners() {
+            // MercadoPago
+            document.getElementById('btn-conectar-mp').addEventListener('click', conectarMercadoPago);
+            
+            // Alertas
+            document.getElementById('btn-clear-all-alerts').addEventListener('click', limpiarTodasAlertas);
+            document.getElementById('btn-test-alerts').addEventListener('click', probarAlertas);
+            
+            // Configuración de alertas - guardar automáticamente
+            document.querySelectorAll('input, select').forEach(input => {
+                input.addEventListener('change', guardarConfiguracionAlertas);
+            });
+
+            // Solicitar permisos de notificación
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        }
+
+        async function conectarMercadoPago() {
+            const token = document.getElementById('mp-access-token').value.trim();
+            const env = document.getElementById('mp-environment').value;
+
+            if (!token) {
+                mostrarNotificacion('❌ Ingresa tu Access Token de MercadoPago', 'danger');
+                return;
+            }
+
+            accessToken = token;
+            environment = env;
+            
+            actualizarEstadoMP('connecting', '🔄 Conectando a MercadoPago...');
+
+            try {
+                const response = await fetch('https://api.mercadopago.com/v1/payments/search?sort=date_created&criteria=desc&limit=1', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    mpConectado = true;
+                    actualizarEstadoMP('online', '✅ MercadoPago conectado - Alertas activas');
+                    
+                    // Cargar pagos iniciales
+                    await cargarPagosMercadoPago();
+                    
+                    // Iniciar monitoreo automático
+                    iniciarMonitoreoAlertas();
+                    
+                    mostrarNotificacion('🎉 Sistema de alertas activado', 'success');
+                    
+                } else {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+
+            } catch (error) {
+                console.error('Error conectando MercadoPago:', error);
+                actualizarEstadoMP('error', '❌ Error conectando: ' + error.message);
+                mostrarNotificacion('❌ Error de conexión: ' + error.message, 'danger');
+            }
+        }
+
+        async function cargarPagosMercadoPago() {
+            if (!mpConectado) return;
+
+            try {
+                const ahora = new Date();
+                const hace24h = new Date(ahora.getTime() - 24 * 60 * 60 * 1000);
+                
+                const url = `https://api.mercadopago.com/v1/payments/search?sort=date_created&criteria=desc&limit=50&begin_date=${hace24h.toISOString()}&end_date=${ahora.toISOString()}`;
+
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const pagosNuevos = data.results || [];
+                    
+                    // Detectar nuevos pagos para alertas
+                    detectarNuevosPagos(pagosNuevos);
+                    
+                    pagosMercadoPago = pagosNuevos;
+                    actualizarEstadisticasAlertas();
+                    
+                } else {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+
+            } catch (error) {
+                console.error('Error cargando pagos:', error);
+                crearAlerta('error', 'Error de Conexión', 'No se pudieron cargar los pagos de MercadoPago');
+            }
+        }
+
+        function detectarNuevosPagos(pagosNuevos) {
+            const fechaUltimaVerificacion = ultimaVerificacion;
+            ultimaVerificacion = new Date();
+
+            pagosNuevos.forEach(pago => {
+                const fechaPago = new Date(pago.date_created);
+                if (fechaPago > fechaUltimaVerificacion) {
+                    procesarAlertasPago(pago);
+                }
+            });
+        }
+
+        function procesarAlertasPago(pago) {
+            const config = alertasConfig;
+
+            // Alerta de pagos altos
+            if (config.highPayment && pago.status === 'approved' && pago.transaction_amount >= config.highPaymentAmount) {
+                crearAlerta('success', `💰 Pago Alto Recibido`, 
+                    `$${pago.transaction_amount.toLocaleString()} - ${pago.description || 'Sin descripción'}`, 
+                    'high-payment');
+                
+                reproducirSonido(config.highPaymentSound);
+            }
+
+            // Alerta de fallos de pago
+            if (config.failedPayment && (pago.status === 'rejected' || pago.status === 'cancelled')) {
+                crearAlerta('danger', `❌ Pago Fallido`, 
+                    `$${pago.transaction_amount.toLocaleString()} - ${pago.status_detail || 'Motivo no especificado'}`, 
+                    'failed-payment');
+                
+                reproducirSonido(config.failedPaymentSound);
+            }
+
+            // Verificar meta diaria
+            if (config.dailyGoal && pago.status === 'approved') {
+                verificarMetaDiaria();
+            }
+
+            // Detectar actividad inusual
+            if (config.unusualActivity) {
+                verificarActividadInusual(pago);
+            }
+        }
+
+        function verificarMetaDiaria() {
+            const config = alertasConfig;
+            const hoy = new Date().toDateString();
+            const pagosHoy = pagosMercadoPago.filter(p => 
+                new Date(p.date_created).toDateString() === hoy && p.status === 'approved'
+            );
+            
+            const totalHoy = pagosHoy.reduce((sum, p) => sum + p.transaction_amount, 0);
+            const porcentajeMeta = (totalHoy / config.dailyGoalAmount) * 100;
+            const umbral = config.dailyGoalPercentage;
+
+            if (porcentajeMeta >= umbral && !alertasActivas.some(a => a.id.includes('daily-goal-' + umbral))) {
+                crearAlerta('info', `🎯 Meta ${umbral}% Alcanzada`, 
+                    `$${totalHoy.toLocaleString()} de $${config.dailyGoalAmount.toLocaleString()} (${porcentajeMeta.toFixed(1)}%)`, 
+                    `daily-goal-${umbral}`);
+            }
+        }
+
+        function verificarActividadInusual(pago) {
+            const config = alertasConfig;
+            const ahora = new Date();
+            const diasComparacion = config.unusualActivityPeriod;
+            const fechaInicio = new Date(ahora.getTime() - diasComparacion * 24 * 60 * 60 * 1000);
+            
+            const pagosPerriodo = pagosMercadoPago.filter(p => 
+                new Date(p.date_created) >= fechaInicio && p.status === 'approved'
+            );
+            
+            const promedioMonto = pagosPerriodo.reduce((sum, p) => sum + p.transaction_amount, 0) / pagosPerriodo.length;
+            
+            // Detectar si el pago actual es muy diferente al promedio
+            const desviacion = Math.abs(pago.transaction_amount - promedioMonto) / promedioMonto;
+            let umbralDesviacion = 0.5; // 50% por defecto
+            
+            if (config.unusualActivitySensitivity === 'high') umbralDesviacion = 0.3;
+            if (config.unusualActivitySensitivity === 'low') umbralDesviacion = 1.0;
+            
+            if (desviacion > umbralDesviacion) {
+                crearAlerta('warning', `🔍 Actividad Inusual Detectada`, 
+                    `Pago de $${pago.transaction_amount.toLocaleString()} (${(desviacion * 100).toFixed(1)}% diferente al promedio)`, 
+                    'unusual-activity');
+            }
+        }
+
+        function crearAlerta(tipo, titulo, descripcion, id) {
+            const alerta = {
+                id: id || 'alert-' + Date.now(),
+                tipo: tipo,
+                titulo: titulo,
+                descripcion: descripcion,
+                timestamp: new Date(),
+                activa: true
+            };
+
+            alertasActivas.unshift(alerta);
+            alertasHoy++;
+            
+            renderizarAlertas();
+            actualizarEstadisticasAlertas();
+            
+            // Notificación del navegador
+            if (!alertasConfig.silentMode && Notification.permission === 'granted') {
+                new Notification(titulo, {
+                    body: descripcion,
+                    icon: getIconoTipo(tipo)
+                });
+            }
+            
+            // Notificación visual
+            mostrarNotificacionPopup(titulo, descripcion, tipo);
+        }
+
+        function renderizarAlertas() {
+            const container = document.getElementById('alertas-container');
+            
+            if (alertasActivas.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">No hay alertas activas.</div>';
+                return;
+            }
+
+            const alertasHTML = alertasActivas.map(alerta => `
+                <div class="alerta-item ${alerta.tipo}" data-id="${alerta.id}">
+                    <div class="alerta-content">
+                        <div class="alerta-titulo">${alerta.titulo}</div>
+                        <div class="alerta-descripcion">${alerta.descripcion}</div>
+                    </div>
+                    <div class="alerta-tiempo">${formatearTiempo(alerta.timestamp)}</div>
+                    <div class="alerta-actions">
+                        <button class="btn-alerta dismiss" onclick="dismissAlerta('${alerta.id}')">✕ Cerrar</button>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = alertasHTML;
+        }
+
+        function dismissAlerta(id) {
+            alertasActivas = alertasActivas.filter(a => a.id !== id);
+            renderizarAlertas();
+            actualizarEstadisticasAlertas();
+        }
+
+        function limpiarTodasAlertas() {
+            alertasActivas = [];
+            renderizarAlertas();
+            actualizarEstadisticasAlertas();
+            mostrarNotificacion('🗑️ Todas las alertas fueron eliminadas', 'info');
+        }
+
+        function probarAlertas() {
+            // Crear alertas de prueba
+            crearAlerta('success', '💰 Pago Alto (Prueba)', 'Pago de $75,000 - Venta importante', 'test-high-payment');
+            crearAlerta('danger', '❌ Pago Fallido (Prueba)', 'Pago de $25,000 - Fondos insuficientes', 'test-failed-payment');
+            crearAlerta('info', '🎯 Meta Alcanzada (Prueba)', '$150,000 de $200,000 (75%)', 'test-daily-goal');
+            crearAlerta('warning', '🔍 Actividad Inusual (Prueba)', 'Pago de $150,000 (300% mayor al promedio)', 'test-unusual');
+            
+            mostrarNotificacion('🧪 Alertas de prueba generadas', 'info');
+        }
+
+        function iniciarMonitoreoAlertas() {
+            // Limpiar intervalos previos
+            intervalosActivos.forEach(clearInterval);
+            intervalosActivos = [];
+
+            if (!mpConectado) return;
+
+            // Monitoreo principal cada 30 segundos
+            const intervaloPrincipal = setInterval(cargarPagosMercadoPago, 30000);
+            intervalosActivos.push(intervaloPrincipal);
+
+            // Resúmenes programados
+            if (alertasConfig.schedule) {
+                const frecuencia = alertasConfig.scheduleFrequency * 60 * 1000; // Convertir a ms
+                const intervaloResumen = setInterval(crearResumenProgramado, frecuencia);
+                intervalosActivos.push(intervaloResumen);
+            }
+
+            document.getElementById('estado-alertas').textContent = 'Monitoreo activo';
+        }
+
+        function crearResumenProgramado() {
+            const config = alertasConfig;
+            const ahora = new Date();
+            const haceXHoras = new Date(ahora.getTime() - config.scheduleFrequency * 60 * 1000);
+            
+            const pagosRecientes = pagosMercadoPago.filter(p => 
+                new Date(p.date_created) >= haceXHoras && p.status === 'approved'
+            );
+            
+            const totalReciente = pagosRecientes.reduce((sum, p) => sum + p.transaction_amount, 0);
+            
+            if (pagosRecientes.length > 0) {
+                crearAlerta('info', `📊 Resumen ${config.scheduleFrequency / 60}h`, 
+                    `${pagosRecientes.length} pagos - Total: $${totalReciente.toLocaleString()}`, 
+                    'scheduled-summary');
+            }
+        }
+
+        function actualizarEstadisticasAlertas() {
+            document.getElementById('stat-alertas-hoy').textContent = alertasHoy.toString();
+            document.getElementById('stat-alertas-activas').textContent = alertasActivas.length.toString();
+            
+            const alertasCriticas = alertasActivas.filter(a => a.tipo === 'danger').length;
+            document.getElementById('stat-alertas-criticas').textContent = alertasCriticas.toString();
+            
+            const pagoMasAltoHoy = Math.max(...pagosMercadoPago.map(p => p.transaction_amount), 0);
+            document.getElementById('stat-pago-alto').textContent = '$' + pagoMasAltoHoy.toLocaleString();
+        }
+
+        function guardarConfiguracionAlertas() {
+            alertasConfig = {
+                // Pagos altos
+                highPayment: document.getElementById('alert-high-payment').checked,
+                highPaymentAmount: parseInt(document.getElementById('high-payment-amount').value) || 50000,
+                highPaymentSound: document.getElementById('high-payment-sound').value,
+                
+                // Fallos de pago
+                failedPayment: document.getElementById('alert-failed-payment').checked,
+                failedPaymentReasons: document.getElementById('failed-payment-reasons').value,
+                failedPaymentSound: document.getElementById('failed-payment-sound').value,
+                
+                // Metas diarias
+                dailyGoal: document.getElementById('alert-daily-goal').checked,
+                dailyGoalAmount: parseInt(document.getElementById('daily-goal-amount').value) || 100000,
+                dailyGoalPercentage: parseInt(document.getElementById('daily-goal-percentage').value) || 100,
+                
+                // Actividad inusual
+                unusualActivity: document.getElementById('alert-unusual-activity').checked,
+                unusualActivitySensitivity: document.getElementById('unusual-activity-sensitivity').value,
+                unusualActivityPeriod: parseInt(document.getElementById('unusual-activity-period').value) || 15,
+                
+                // Horarios
+                schedule: document.getElementById('alert-schedule').checked,
+                scheduleFrequency: parseInt(document.getElementById('schedule-frequency').value) || 360,
+                scheduleContent: document.getElementById('schedule-content').value,
+                
+                // Reembolsos
+                refunds: document.getElementById('alert-refunds').checked,
+                refundMinimum: parseInt(document.getElementById('refund-minimum').value) || 0,
+                refundTypes: document.getElementById('refund-types').value,
+                
+                // Sonidos
+                volumeGeneral: parseInt(document.getElementById('volume-general').value) || 50,
+                silentMode: document.getElementById('silent-mode').checked
+            };
+
+            localStorage.setItem('alertasConfig', JSON.stringify(alertasConfig));
+            
+            // Reiniciar monitoreo si está conectado
+            if (mpConectado) {
+                iniciarMonitoreoAlertas();
+            }
+        }
+
+        function cargarConfiguracionAlertas() {
+            const configGuardada = localStorage.getItem('alertasConfig');
+            if (configGuardada) {
+                alertasConfig = JSON.parse(configGuardada);
+                
+                // Aplicar configuración a los elementos
+                document.getElementById('alert-high-payment').checked = alertasConfig.highPayment || false;
+                document.getElementById('high-payment-amount').value = alertasConfig.highPaymentAmount || 50000;
+                document.getElementById('high-payment-sound').value = alertasConfig.highPaymentSound || 'chime';
+                
+                document.getElementById('alert-failed-payment').checked = alertasConfig.failedPayment !== false;
+                document.getElementById('failed-payment-reasons').value = alertasConfig.failedPaymentReasons || 'all';
+                document.getElementById('failed-payment-sound').value = alertasConfig.failedPaymentSound || 'error';
+                
+                document.getElementById('alert-daily-goal').checked = alertasConfig.dailyGoal || false;
+                document.getElementById('daily-goal-amount').value = alertasConfig.dailyGoalAmount || 100000;
+                document.getElementById('daily-goal-percentage').value = alertasConfig.dailyGoalPercentage || 100;
+                
+                document.getElementById('alert-unusual-activity').checked = alertasConfig.unusualActivity || false;
+                document.getElementById('unusual-activity-sensitivity').value = alertasConfig.unusualActivitySensitivity || 'medium';
+                document.getElementById('unusual-activity-period').value = alertasConfig.unusualActivityPeriod || 15;
+                
+                document.getElementById('alert-schedule').checked = alertasConfig.schedule || false;
+                document.getElementById('schedule-frequency').value = alertasConfig.scheduleFrequency || 360;
+                document.getElementById('schedule-content').value = alertasConfig.scheduleContent || 'summary';
+                
+                document.getElementById('alert-refunds').checked = alertasConfig.refunds !== false;
+                document.getElementById('refund-minimum').value = alertasConfig.refundMinimum || 0;
+                document.getElementById('refund-types').value = alertasConfig.refundTypes || 'all';
+                
+                document.getElementById('volume-general').value = alertasConfig.volumeGeneral || 50;
+                document.getElementById('silent-mode').checked = alertasConfig.silentMode || false;
+            }
+        }
+
+        function initializeAlertas() {
+            document.getElementById('estado-alertas').textContent = 'Esperando configuración';
+            actualizarEstadisticasAlertas();
+        }
+
+        function actualizarEstadoMP(estado, mensaje) {
+            const statusElement = document.getElementById('mp-status');
+            statusElement.textContent = mensaje;
+            
+            if (estado === 'online') {
+                statusElement.style.color = '#28a745';
+            } else if (estado === 'error') {
+                statusElement.style.color = '#dc3545';
+            } else {
+                statusElement.style.color = '#666';
+            }
+        }
+
+        function reproducirSonido(tipo) {
+            if (alertasConfig.silentMode) return;
+            
+            // Simular sonidos (en una implementación real usarías archivos de audio)
+            const context = new (window.AudioContext || window.webkitAudioContext)();
+            const volume = alertasConfig.volumeGeneral / 100;
+            
+            let frequency = 800; // Frecuencia por defecto
+            
+            switch(tipo) {
+                case 'chime': frequency = 1000; break;
+                case 'ding': frequency = 1200; break;
+                case 'cash': frequency = 600; break;
+                case 'success': frequency = 880; break;
+                case 'error': frequency = 400; break;
+                case 'beep': frequency = 800; break;
+                case 'alert': frequency = 1500; break;
+            }
+            
+            const oscillator = context.createOscillator();
+            const gainNode = context.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(context.destination);
+            
+            oscillator.frequency.value = frequency;
+            gainNode.gain.setValueAtTime(volume * 0.3, context.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.5);
+            
+            oscillator.start(context.currentTime);
+            oscillator.stop(context.currentTime + 0.5);
+        }
+
+        function testSound(tipo) {
+            reproducirSonido(document.getElementById('high-payment-sound').value);
+        }
+
+        function mostrarNotificacion(mensaje, tipo = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification-popup ${tipo}`;
+            notification.textContent = mensaje;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.classList.add('show'), 100);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }, 4000);
+        }
+
+        function mostrarNotificacionPopup(titulo, descripcion, tipo) {
+            mostrarNotificacion(`${titulo}: ${descripcion}`, tipo);
+        }
+
+        function formatearTiempo(fecha) {
+            const ahora = new Date();
+            const diferencia = ahora - fecha;
+            const minutos = Math.floor(diferencia / 60000);
+            
+            if (minutos < 1) return 'Ahora';
+            if (minutos < 60) return `${minutos}m`;
+            
+            const horas = Math.floor(minutos / 60);
+            if (horas < 24) return `${horas}h`;
+            
+            const dias = Math.floor(horas / 24);
+            return `${dias}d`;
+        }
+
+        function getIconoTipo(tipo) {
+            switch(tipo) {
+                case 'success': return '✅';
+                case 'danger': return '❌';
+                case 'warning': return '⚠️';
+                case 'info': return 'ℹ️';
+                default: return '🔔';
+            }
+        }
+    </script>
+</body>
+</html>

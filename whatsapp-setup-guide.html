@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía WhatsApp APIs - Configuración Real</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        header h1 {
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .main-content {
+            padding: 2rem;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .option-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 2rem;
+            border: 3px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-color: #25D366;
+        }
+
+        .option-card.recommended {
+            border-color: #25D366;
+            background: #f0fff4;
+        }
+
+        .option-card.recommended::before {
+            content: "🌟 RECOMENDADO";
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #25D366;
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        .option-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .option-icon {
+            font-size: 3rem;
+        }
+
+        .option-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .option-subtitle {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .option-details {
+            margin-bottom: 1.5rem;
+        }
+
+        .option-details h4 {
+            color: #25D366;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .option-details ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .option-details li {
+            padding: 0.3rem 0;
+            color: #555;
+            position: relative;
+            padding-left: 1.5rem;
+        }
+
+        .option-details li::before {
+            content: "✅";
+            position: absolute;
+            left: 0;
+        }
+
+        .pricing {
+            background: #e8f5e8;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .pricing .price {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #25D366;
+        }
+
+        .pricing .period {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .setup-difficulty {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .difficulty-stars {
+            color: #ffc107;
+        }
+
+        .setup-button {
+            width: 100%;
+            background: #25D366;
+            color: white;
+            border: none;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .setup-button:hover {
+            background: #128C7E;
+        }
+
+        .step-by-step {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .step-by-step.active {
+            display: block;
+            border-color: #25D366;
+        }
+
+        .step-by-step h3 {
+            color: #25D366;
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+        }
+
+        .step {
+            background: #f8f9fa;
+            border-left: 4px solid #25D366;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .step h4 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .step p, .step li {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 0.5rem;
+        }
+
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            font-size: 0.9rem;
+        }
+
+        .code-block .comment {
+            color: #6A9955;
+        }
+
+        .code-block .string {
+            color: #ce9178;
+        }
+
+        .code-block .keyword {
+            color: #569cd6;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .success-box {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .test-section {
+            background: #e3f2fd;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 2rem;
+        }
+
+        .test-section h4 {
+            color: #1976d2;
+            margin-bottom: 1rem;
+        }
+
+        .test-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .test-form input {
+            padding: 0.7rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .test-button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .options-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .test-form {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+            
+            header h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📱 WhatsApp APIs - Configuración Real</h1>
+            <p>Elige tu método preferido e implementa alertas WhatsApp en 30 minutos</p>
+        </header>
+
+        <div class="main-content">
+            <div class="options-grid">
+                <!-- Opción 1: Twilio -->
+                <div class="option-card recommended" onclick="showSetup('twilio')">
+                    <div class="option-header">
+                        <div class="option-icon">🚀</div>
+                        <div>
+                            <div class="option-title">Twilio WhatsApp</div>
+                            <div class="option-subtitle">API robusta y confiable</div>
+                        </div>
+                    </div>
+                    
+                    <div class="option-details">
+                        <h4>✅ Ventajas:</h4>
+                        <ul>
+                            <li>Configuración en 15 minutos</li>
+                            <li>$15 USD gratis para empezar</li>
+                            <li>Sandbox gratuito ilimitado</li>
+                            <li>Excelente documentación</li>
+                            <li>Soporte técnico premium</li>
+                        </ul>
+                    </div>
+
+                    <div class="pricing">
+                        <div class="price">$0.005 USD por mensaje</div>
+                        <div class="period">~$2-3 USD/mes uso normal</div>
+                    </div>
+
+                    <div class="setup-difficulty">
+                        <span>Dificultad:</span>
+                        <div class="difficulty-stars">⭐⭐☆☆☆</div>
+                        <span>(Fácil)</span>
+                    </div>
+
+                    <button class="setup-button">📋 Ver Guía Completa</button>
+                </div>
+
+                <!-- Opción 2: WhatsApp Business API -->
+                <div class="option-card" onclick="showSetup('whatsapp-business')">
+                    <div class="option-header">
+                        <div class="option-icon">📱</div>
+                        <div>
+                            <div class="option-title">WhatsApp Business API</div>
+                            <div class="option-subtitle">API oficial de WhatsApp</div>
+                        </div>
+                    </div>
+                    
+                    <div class="option-details">
+                        <h4>✅ Ventajas:</h4>
+                        <ul>
+                            <li>API oficial de WhatsApp</li>
+                            <li>Sin límites de mensajes</li>
+                            <li>Múltiples proveedores</li>
+                            <li>Integración empresarial</li>
+                            <li>Templates personalizados</li>
+                        </ul>
+                    </div>
+
+                    <div class="pricing">
+                        <div class="price">Gratis - $50 USD/mes</div>
+                        <div class="period">Depende del proveedor</div>
+                    </div>
+
+                    <div class="setup-difficulty">
+                        <span>Dificultad:</span>
+                        <div class="difficulty-stars">⭐⭐⭐☆☆</div>
+                        <span>(Media)</span>
+                    </div>
+
+                    <button class="setup-button">📋 Ver Guía Completa</button>
+                </div>
+
+                <!-- Opción 3: Webhook + Bot -->
+                <div class="option-card" onclick="showSetup('webhook-bot')">
+                    <div class="option-header">
+                        <div class="option-icon">🤖</div>
+                        <div>
+                            <div class="option-title">Webhook + Bot</div>
+                            <div class="option-subtitle">Solución personalizada</div>
+                        </div>
+                    </div>
+                    
+                    <div class="option-details">
+                        <h4>✅ Ventajas:</h4>
+                        <ul>
+                            <li>100% gratuito</li>
+                            <li>Control total</li>
+                            <li>Sin restricciones</li>
+                            <li>Personalización máxima</li>
+                            <li>Escalable infinitamente</li>
+                        </ul>
+                    </div>
+
+                    <div class="pricing">
+                        <div class="price">$0 USD</div>
+                        <div class="period">Completamente gratis</div>
+                    </div>
+
+                    <div class="setup-difficulty">
+                        <span>Dificultad:</span>
+                        <div class="difficulty-stars">⭐⭐⭐⭐☆</div>
+                        <span>(Avanzado)</span>
+                    </div>
+
+                    <button class="setup-button">📋 Ver Guía Completa</button>
+                </div>
+            </div>
+
+            <!-- Guía Twilio -->
+            <div id="setup-twilio" class="step-by-step">
+                <h3>🚀 Configuración Twilio WhatsApp (15 minutos)</h3>
+
+                <div class="step">
+                    <h4>1️⃣ Crear cuenta Twilio</h4>
+                    <p>Regístrate en <strong>twilio.com</strong> y verifica tu cuenta</p>
+                    <ul>
+                        <li>Recibes $15 USD de crédito gratis</li>
+                        <li>No necesitas tarjeta de crédito inicialmente</li>
+                        <li>Verifica tu número de teléfono</li>
+                    </ul>
+                </div>
+
+                <div class="step">
+                    <h4>2️⃣ Obtener credenciales</h4>
+                    <p>En tu Dashboard de Twilio, copia:</p>
+                    <div class="code-block">
+<span class="comment">// Credenciales necesarias</span>
+Account SID: <span class="string">"ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"</span>
+Auth Token: <span class="string">"your_auth_token_here"</span>
+Twilio Phone: <span class="string">"+14155238886"</span> <span class="comment">// Número sandbox</span>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <h4>3️⃣ Configurar WhatsApp Sandbox</h4>
+                    <p>Ve a <strong>Messaging > Try it out > Send a WhatsApp message</strong></p>
+                    <ul>
+                        <li>Envía "join [código]" al número +1 415 523 8886</li>
+                        <li>Ejemplo: "join spider-party"</li>
+                        <li>Recibirás confirmación en WhatsApp</li>
+                    </ul>
+                    
+                    <div class="warning-box">
+                        <strong>⚠️ Importante:</strong> El sandbox es gratuito pero solo funciona con números verificados. Para producción necesitarás aprobar un template.
+                    </div>
+                </div>
+
+                <div class="step">
+                    <h4>4️⃣ Código JavaScript para envío</h4>
+                    <div class="code-block">
+<span class="comment">// Función para enviar WhatsApp con Twilio</span>
+<span class="keyword">async function</span> enviarWhatsAppTwilio(mensaje, numeroDestino) {
+    <span class="keyword">const</span> accountSid = <span class="string">'TU_ACCOUNT_SID'</span>;
+    <span class="keyword">const</span> authToken = <span class="string">'TU_AUTH_TOKEN'</span>;
+    <span class="keyword">const</span> twilioPhone = <span class="string">'+14155238886'</span>; <span class="comment">// Sandbox</span>
+    
+    <span class="keyword">const</span> url = <span class="string">`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`</span>;
+    
+    <span class="keyword">const</span> data = <span class="keyword">new</span> URLSearchParams({
+        <span class="string">'From'</span>: <span class="string">`whatsapp:${twilioPhone}`</span>,
+        <span class="string">'To'</span>: <span class="string">`whatsapp:${numeroDestino}`</span>,
+        <span class="string">'Body'</span>: mensaje
+    });
+    
+    <span class="keyword">try</span> {
+        <span class="keyword">const</span> response = <span class="keyword">await</span> fetch(url, {
+            method: <span class="string">'POST'</span>,
+            headers: {
+                <span class="string">'Authorization'</span>: <span class="string">'Basic '</span> + btoa(accountSid + <span class="string">':'</span> + authToken),
+                <span class="string">'Content-Type'</span>: <span class="string">'application/x-www-form-urlencoded'</span>
+            },
+            body: data
+        });
+        
+        <span class="keyword">if</span> (response.ok) {
+            console.log(<span class="string">'✅ WhatsApp enviado correctamente'</span>);
+            <span class="keyword">return</span> <span class="keyword">true</span>;
+        } <span class="keyword">else</span> {
+            <span class="keyword">throw new</span> Error(<span class="string">'Error en envío: '</span> + response.statusText);
+        }
+    } <span class="keyword">catch</span> (error) {
+        console.error(<span class="string">'❌ Error enviando WhatsApp:'</span>, error);
+        <span class="keyword">return</span> <span class="keyword">false</span>;
+    }
+}
+
+<span class="comment">// Ejemplo de uso</span>
+enviarWhatsAppTwilio(
+    <span class="string">'🏪 Ferretería Control\n\n💰 PAGO RECIBIDO\nMonto: $45,750\nHora: 14:23'</span>,
+    <span class="string">'+5491123456789'</span> <span class="comment">// Tu número</span>
+);
+                    </div>
+                </div>
+
+                <div class="success-box">
+                    <strong>🎉 ¡Listo!</strong> Ya puedes enviar WhatsApp desde tu aplicación. Para producción, solicita aprobación de templates en Twilio Console.
+                </div>
+
+                <div class="test-section">
+                    <h4>🧪 Probar envío</h4>
+                    <div class="test-form">
+                        <input type="text" id="twilio-sid" placeholder="Account SID">
+                        <input type="text" id="twilio-token" placeholder="Auth Token">
+                        <button class="test-button" onclick="testTwilio()">Enviar Prueba</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Guía WhatsApp Business API -->
+            <div id="setup-whatsapp-business" class="step-by-step">
+                <h3>📱 WhatsApp Business API (30 minutos)</h3>
+
+                <div class="step">
+                    <h4>1️⃣ Elegir proveedor BSP</h4>
+                    <p>Proveedores recomendados (Business Solution Providers):</p>
+                    <ul>
+                        <li><strong>360Dialog</strong> - Más fácil, desde €9/mes</li>
+                        <li><strong>Twilio</strong> - Robusto, desde $15/mes</li>
+                        <li><strong>MessageBird</strong> - Económico, desde $5/mes</li>
+                        <li><strong>Infobip</strong> - Empresarial, consultar precios</li>
+                    </ul>
+                </div>
+
+                <div class="step">
+                    <h4>2️⃣ Verificación de negocio</h4>
+                    <p>WhatsApp requiere verificar tu negocio:</p>
+                    <ul>
+                        <li>Registro de empresa oficial</li>
+                        <li>Sitio web del negocio</li>
+                        <li>Número de teléfono comercial</li>
+                        <li>Proceso de aprobación: 2-7 días</li>
+                    </ul>
+                </div>
+
+                <div class="step">
+                    <h4>3️⃣ Configurar Webhook</h4>
+                    <div class="code-block">
+<span class="comment">// Webhook para recibir respuestas (opcional)</span>
+<span class="keyword">app</span>.post(<span class="string">'/webhook/whatsapp'</span>, (req, res) => {
+    <span class="keyword">const</span> { body } = req;
+    
+    <span class="keyword">if</span> (body.entry && body.entry[0].changes) {
+        <span class="keyword">const</span> change = body.entry[0].changes[0];
+        <span class="keyword">if</span> (change.field === <span class="string">'messages'</span>) {
+            <span class="comment">// Procesar mensaje recibido</span>
+            console.log(<span class="string">'Mensaje recibido:'</span>, change.value);
+        }
+    }
+    
+    res.sendStatus(200);
+});
+                    </div>
+                </div>
+
+                <div class="step">
+                    <h4>4️⃣ Código para envío (360Dialog)</h4>
+                    <div class="code-block">
+<span class="comment">// Envío con 360Dialog (ejemplo)</span>
+<span class="keyword">async function</span> enviarWhatsApp360Dialog(mensaje, numeroDestino) {
+    <span class="keyword">const</span> apiKey = <span class="string">'TU_API_KEY_360DIALOG'</span>;
+    <span class="keyword">const</span> url = <span class="string">'https://waba.360dialog.io/v1/messages'</span>;
+    
+    <span class="keyword">const</span> payload = {
+        recipient_type: <span class="string">'individual'</span>,
+        to: numeroDestino.replace(<span class="string">'+'</span>, <span class="string">''</span>),
+        type: <span class="string">'text'</span>,
+        text: { body: mensaje }
+    };
+    
+    <span class="keyword">try</span> {
+        <span class="keyword">const</span> response = <span class="keyword">await</span> fetch(url, {
+            method: <span class="string">'POST'</span>,
+            headers: {
+                <span class="string">'D360-API-KEY'</span>: apiKey,
+                <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span>
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        <span class="keyword">if</span> (response.ok) {
+            <span class="keyword">const</span> result = <span class="keyword">await</span> response.json();
+            console.log(<span class="string">'✅ WhatsApp enviado:'</span>, result.messages[0].id);
+            <span class="keyword">return</span> <span class="keyword">true</span>;
+        } <span class="keyword">else</span> {
+            <span class="keyword">throw new</span> Error(<span class="string">'Error API: '</span> + response.status);
+        }
+    } <span class="keyword">catch</span> (error) {
+        console.error(<span class="string">'❌ Error:'</span>, error);
+        <span class="keyword">return</span> <span class="keyword">false</span>;
+    }
+}
+                    </div>
+                </div>
+
+                <div class="warning-box">
+                    <strong>📋 Requisitos:</strong> Necesitas un negocio verificado y aprobar templates de mensajes. El proceso puede tomar 1-2 semanas.
+                </div>
+            </div>
+
+            <!-- Guía Webhook + Bot -->
+            <div id="setup-webhook-bot" class="step-by-step">
+                <h3>🤖 Webhook + Bot Personalizado (45 minutos)</h3>
+
+                <div class="step">
+                    <h4>1️⃣ Instalar WhatsApp Web.js</h4>
+                    <div class="code-block">
+<span class="comment">// Instalar dependencias</span>
+npm install whatsapp-web.js qrcode-terminal express
+
+<span class="comment">// O con yarn</span>
+yarn add whatsapp-web.js qrcode-terminal express
+                    </div>
+                </div>
+
+                <div class="step">
+                    <h4>2️⃣ Crear servidor bot</h4>
+                    <div class="code-block">
+<span class="comment">// bot-whatsapp.js</span>
+<span class="keyword">const</span> { Client, LocalAuth } = require(<span class="string">'whatsapp-web.js'</span>);
+<span class="keyword">const</span> qrcode = require(<span class="string">'qrcode-terminal'</span>);
+<span class="keyword">const</span> express = require(<span class="string">'express'</span>);
+
+<span class="keyword">const</span> app = express();
+app.use(express.json());
+
+<span class="comment">// Inicializar cliente WhatsApp</span>
+<span class="keyword">const</span> client = <span class="keyword">new</span> Client({
+    authStrategy: <span class="keyword">new</span> LocalAuth()
+});
+
+<span class="comment">// Generar QR para autenticación</span>
+client.on(<span class="string">'qr'</span>, qr => {
+    qrcode.generate(qr, { small: <span class="keyword">true</span> });
+    console.log(<span class="string">'📱 Escanea el código QR con WhatsApp'</span>);
+});
+
+<span class="comment">// Cliente listo</span>
+client.on(<span class="string">'ready'</span>, () => {
+    console.log(<span class="string">'✅ WhatsApp Bot conectado'</span>);
+});
+
+<span class="comment">// Webhook para recibir alertas</span>
+app.post(<span class="string">'/send-alert'</span>, <span class="keyword">async</span> (req, res) => {
+    <span class="keyword">const</span> { mensaje, numero } = req.body;
+    
+    <span class="keyword">try</span> {
+        <span class="keyword">await</span> client.sendMessage(numero + <span class="string">'@c.us'</span>, mensaje);
+        res.json({ success: <span class="keyword">true</span>, message: <span class="string">'Mensaje enviado'</span> });
+    } <span class="keyword">catch</span> (error) {
+        res.status(500).json({ success: <span class="keyword">false</span>, error: error.message });
+    }
+});
+
+client.initialize();
+app.listen(3001, () => {
+    console.log(<span class="string">'🚀 Bot WhatsApp corriendo en puerto 3001'</span>);
+});
+                    </div>
+                </div>
+
+                <div class="step">
+                    <h4>3️⃣ Función de envío desde tu app</h4>
+                    <div class="code-block">
+<span class="comment">// Enviar desde tu aplicación web</span>
+<span class="keyword">async function</span> enviarWhatsAppBot(mensaje, numeroDestino) {
+    <span class="keyword">try</span> {
+        <span class="keyword">const</span> response = <span class="keyword">await</span> fetch(<span class="string">'http://localhost:3001/send-alert'</span>, {
+            method: <span class="string">'POST'</span>,
+            headers: {
+                <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span>
+            },
+            body: JSON.stringify({
+                mensaje: mensaje,
+                numero: numeroDestino.replace(<span class="string">'+'</span>, <span class="string">''</span>).replace(<span class="string">' '</span>, <span class="string">''</span>)
+            })
+        });
+        
+        <span class="keyword">const</span> result = <span class="keyword">await</span> response.json();
+        
+        <span class="keyword">if</span> (result.success) {
+            console.log(<span class="string">'✅ WhatsApp enviado via Bot'</span>);
+            <span class="keyword">return</span> <span class="keyword">true</span>;
+        } <span class="keyword">else</span> {
+            <span class="keyword">throw new</span> Error(result.error);
+        }
+    } <span class="keyword">catch</span> (error) {
+        console.error(<span class="string">'❌ Error Bot WhatsApp:'</span>, error);
+        <span class="keyword">return</span> <span class="keyword">false</span>;
+    }
+}
+                    </div>
+                </div>
+
+                <div class="step">
+                    <h4>4️⃣ Ejecutar el bot</h4>
+                    <div class="code-block">
+<span class="comment"># Ejecutar en terminal separada</span>
+node bot-whatsapp.js
+
+<span class="comment"># Verás el QR code - escanealo con WhatsApp</span>
+<span class="comment"># El bot quedará conectado 24/7</span>
+                    </div>
+                </div>
+
+                <div class="success-box">
+                    <strong>🎉 Ventajas del bot:</strong>
+                    <ul>
+                        <li>100% gratuito y sin límites</li>
+                        <li>Funciona con tu WhatsApp personal</li>
+                        <li>Control total sobre mensajes</li>
+                        <li>Puede recibir respuestas también</li>
+                    </ul>
+                </div>
+
+                <div class="warning-box">
+                    <strong>⚠️ Importante:</strong> Este método usa WhatsApp Web no oficial. WhatsApp puede detectar y bloquear cuentas automatizadas.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showSetup(option) {
+            // Ocultar todos los setups
+            document.querySelectorAll('.step-by-step').forEach(setup => {
+                setup.classList.remove('active');
+            });
+            
+            // Mostrar setup seleccionado
+            document.getElementById('setup-' + option).classList.add('active');
+            
+            // Scroll al setup
+            document.getElementById('setup-' + option).scrollIntoView({ 
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+
+        async function testTwilio() {
+            const sid = document.getElementById('twilio-sid').value;
+            const token = document.getElementById('twilio-token').value;
+            
+            if (!sid || !token) {
+                alert('❌ Ingresa SID y Token de Twilio');
+                return;
+            }
+            
+            // Aquí iría la lógica real de prueba
+            alert('🧪 Función de prueba configurada. Implementar con credenciales reales.');
+        }
+
+        // Mostrar Twilio por defecto (recomendado)
+        window.addEventListener('load', () => {
+            showSetup('twilio');
+        });
+    </script>
+</body>
+</html>
