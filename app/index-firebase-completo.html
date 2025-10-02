@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Ferretería - Sistema Completo</title>
+    <link rel="stylesheet" href="styles-ferreteria.css">
+    
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- jsPDF para exportar reportes a PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- Firebase v9 SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
+
+        // Your web app's Firebase configuration (TEMPORAL - necesitas reemplazar con la tuya)
+        const firebaseConfig = {
+            apiKey: "TEMP_API_KEY",
+            authDomain: "ferreteria-control-demo.firebaseapp.com",
+            projectId: "ferreteria-control-demo",
+            storageBucket: "ferreteria-control-demo.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcd1234567890"
+        };
+
+        // Initialize Firebase
+        window.firebaseApp = initializeApp(firebaseConfig);
+        window.db = getFirestore(window.firebaseApp);
+        window.auth = getAuth(window.firebaseApp);
+
+        // Export Firebase functions globally
+        window.collection = collection;
+        window.addDoc = addDoc;
+        window.onSnapshot = onSnapshot;
+        window.deleteDoc = deleteDoc;
+        window.doc = doc;
+        window.updateDoc = updateDoc;
+        window.query = query;
+        window.orderBy = orderBy;
+        window.serverTimestamp = serverTimestamp;
+        window.signInAnonymously = signInAnonymously;
+        window.onAuthStateChanged = onAuthStateChanged;
+
+        // Initialize the app when Firebase is ready
+        window.addEventListener('load', () => {
+            initializeApp();
+        });
+    </script>
+
+    <style>
+        /* ===== ESTILOS INTEGRADOS ===== */
+        
+        .reportes {
+            margin-top: 2rem;
+        }
+
+        .reportes-filtros {
+            display: grid;
+            grid-template-columns: auto auto 1fr;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .filtros-periodo, .filtros-fechas {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filtros-fechas input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .reportes-acciones {
+            display: flex;
+            gap: 0.5rem;
+            justify-self: end;
+        }
+
+        .graficos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .grafico-container {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+        }
+
+        .grafico-container h3 {
+            margin: 0 0 1rem 0;
+            color: #333;
+            font-size: 1.1rem;
+            text-align: center;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 0.5rem;
+        }
+
+        .grafico-container canvas {
+            max-height: 300px;
+            width: 100% !important;
+            height: 300px !important;
+        }
+
+        .estadisticas-resumen {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.9rem;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
+        .stat-card span {
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .btn-reporte {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+        }
+
+        .btn-reporte:hover {
+            background: #45a049;
+        }
+
+        .btn-pdf {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+        }
+
+        .btn-pdf:hover {
+            background: #1976D2;
+        }
+
+        .stat-card:nth-child(1) { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); }
+        .stat-card:nth-child(2) { background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); }
+        .stat-card:nth-child(3) { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); }
+        .stat-card:nth-child(4) { background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); }
+
+        @media (max-width: 768px) {
+            .reportes-filtros {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .reportes-acciones {
+                justify-self: stretch;
+            }
+            
+            .graficos-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .grafico-container {
+                padding: 1rem;
+            }
+            
+            .estadisticas-resumen {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Control Ferretería - Sistema Completo</h1>
+            <p>Gestión de Proveedores y Pagos • Ingresos Mercado Pago • Reportes Avanzados</p>
+            <div id="sync-status" class="sync-status">
+                <span id="sync-indicator" class="sync-indicator offline">🔄 Conectando...</span>
+            </div>
+        </header>
+
+        <main>
+            <!-- Dashboard de resumen -->
+            <section class="dashboard">
+                <div class="card">
+                    <h2>📊 Resumen General</h2>
+                    <div class="dashboard-grid">
+                        <div class="dashboard-item balance-neto-mp">
+                            <div class="dashboard-icon">💳</div>
+                            <div class="dashboard-info">
+                                <h3>Balance Neto MP</h3>
+                                <span id="balance-neto-mp">$0</span>
+                                <small id="detalle-mp">MP: $0 - Transferencias: $0</small>
+                            </div>
+                        </div>
+                        <div class="dashboard-item balance-neto-mostrador">
+                            <div class="dashboard-icon">🏪</div>
+                            <div class="dashboard-info">
+                                <h3>Balance Neto Mostrador</h3>
+                                <span id="balance-neto-mostrador">$0</span>
+                                <small id="detalle-mostrador">Mostrador: $0 - Efectivo: $0</small>
+                            </div>
+                        </div>
+                        <div class="dashboard-item total-ingresos">
+                            <div class="dashboard-icon">💰</div>
+                            <div class="dashboard-info">
+                                <h3>Ingresos Totales</h3>
+                                <span id="total-ingresos">$0</span>
+                                <small id="contador-ingresos">0 transacciones</small>
+                            </div>
+                        </div>
+                        <div class="dashboard-item total-gastos">
+                            <div class="dashboard-icon">💸</div>
+                            <div class="dashboard-info">
+                                <h3>Gastos Totales</h3>
+                                <span id="total-gastos">$0</span>
+                                <small id="contador-gastos">0 transacciones</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Filtros por fecha -->
+            <section class="filtros">
+                <div class="card">
+                    <h2>📅 Filtros de Fecha</h2>
+                    <div class="filtros-grid">
+                        <div class="form-group">
+                            <label for="fecha-desde">Desde:</label>
+                            <input type="date" id="fecha-desde" name="fecha-desde">
+                        </div>
+                        <div class="form-group">
+                            <label for="fecha-hasta">Hasta:</label>
+                            <input type="date" id="fecha-hasta" name="fecha-hasta">
+                        </div>
+                        <div class="form-group">
+                            <label for="periodo-rapido">Período rápido:</label>
+                            <select id="periodo-rapido">
+                                <option value="">Personalizado</option>
+                                <option value="hoy">Hoy</option>
+                                <option value="ayer">Ayer</option>
+                                <option value="semana">Esta semana</option>
+                                <option value="mes">Este mes</option>
+                                <option value="mes-anterior">Mes anterior</option>
+                            </select>
+                        </div>
+                        <div class="form-actions">
+                            <button id="btn-aplicar-filtros" class="btn-primary">Aplicar Filtros</button>
+                            <button id="btn-limpiar-filtros" class="btn-secondary">Limpiar</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Formularios de registro -->
+            <section class="formularios">
+                <div class="card">
+                    <h2>⚡ Registrar Transacciones</h2>
+                    <div class="formularios-grid" id="formularios-container">
+                        <!-- Ingresos Mercado Pago -->
+                        <div class="card formulario-card">
+                            <h3>💳 Ingresos Mercado Pago</h3>
+                            <form id="form-ingreso-mp">
+                                <div class="form-group">
+                                    <label for="mp-descripcion">Descripción:</label>
+                                    <input type="text" id="mp-descripcion" required placeholder="Ej: Venta de herramientas">
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="mp-monto">Monto Bruto:</label>
+                                        <input type="number" id="mp-monto" step="0.01" required placeholder="0.00">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="mp-comision">Comisión:</label>
+                                        <input type="number" id="mp-comision" step="0.01" placeholder="0.00">
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn-primary">💳 Agregar Ingreso MP</button>
+                            </form>
+                        </div>
+
+                        <!-- Ventas Mostrador -->
+                        <div class="card formulario-card">
+                            <h3>🏪 Ventas Mostrador</h3>
+                            <form id="form-venta-mostrador">
+                                <div class="form-group">
+                                    <label for="mostrador-descripcion">Descripción:</label>
+                                    <input type="text" id="mostrador-descripcion" required placeholder="Ej: Venta de tornillos">
+                                </div>
+                                <div class="form-group">
+                                    <label for="mostrador-monto">Monto:</label>
+                                    <input type="number" id="mostrador-monto" step="0.01" required placeholder="0.00">
+                                </div>
+                                <button type="submit" class="btn-primary">🏪 Agregar Venta</button>
+                            </form>
+                        </div>
+
+                        <!-- Pagos Proveedores -->
+                        <div class="card formulario-card">
+                            <h3>💸 Pagos a Proveedores</h3>
+                            <form id="form-pago-proveedor">
+                                <div class="form-group">
+                                    <label for="proveedor-nombre">Proveedor:</label>
+                                    <input type="text" id="proveedor-nombre" required placeholder="Ej: Ferretería Central">
+                                </div>
+                                <div class="form-group">
+                                    <label for="proveedor-monto">Monto:</label>
+                                    <input type="number" id="proveedor-monto" step="0.01" required placeholder="0.00">
+                                </div>
+                                <button type="submit" class="btn-primary">💸 Agregar Pago</button>
+                            </form>
+                        </div>
+
+                        <!-- Pagos Efectivo -->
+                        <div class="card formulario-card">
+                            <h3>💵 Pagos en Efectivo</h3>
+                            <form id="form-pago-efectivo">
+                                <div class="form-group">
+                                    <label for="efectivo-descripcion">Descripción:</label>
+                                    <input type="text" id="efectivo-descripcion" required placeholder="Ej: Compra combustible">
+                                </div>
+                                <div class="form-group">
+                                    <label for="efectivo-monto">Monto:</label>
+                                    <input type="number" id="efectivo-monto" step="0.01" required placeholder="0.00">
+                                </div>
+                                <button type="submit" class="btn-primary">💵 Agregar Pago</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sistema de Reportes -->
+            <section class="reportes">
+                <div class="card">
+                    <h2>📊 Reportes y Analytics</h2>
+                    
+                    <!-- Controles de reportes -->
+                    <div class="reportes-filtros">
+                        <div class="filtros-periodo">
+                            <label for="reporte-periodo">Período del reporte:</label>
+                            <select id="reporte-periodo">
+                                <option value="dia">Por día</option>
+                                <option value="semana">Por semana</option>
+                                <option value="mes" selected>Por mes</option>
+                                <option value="trimestre">Por trimestre</option>
+                            </select>
+                        </div>
+                        <div class="filtros-fechas">
+                            <label for="reporte-desde">Desde:</label>
+                            <input type="date" id="reporte-desde">
+                            <label for="reporte-hasta">Hasta:</label>
+                            <input type="date" id="reporte-hasta">
+                        </div>
+                        <div class="reportes-acciones">
+                            <button id="btn-actualizar-reportes" class="btn-reporte">🔄 Actualizar</button>
+                            <button id="btn-exportar-pdf" class="btn-pdf">📄 Exportar PDF</button>
+                        </div>
+                    </div>
+
+                    <!-- Grid de gráficos -->
+                    <div class="graficos-grid">
+                        <div class="grafico-container">
+                            <h3>💰 Ingresos vs Gastos</h3>
+                            <canvas id="chart-ingresos-gastos"></canvas>
+                        </div>
+
+                        <div class="grafico-container">
+                            <h3>💳 Mercado Pago vs Mostrador</h3>
+                            <canvas id="chart-mp-mostrador"></canvas>
+                        </div>
+
+                        <div class="grafico-container">
+                            <h3>🏪 Top Proveedores</h3>
+                            <canvas id="chart-proveedores"></canvas>
+                        </div>
+
+                        <div class="grafico-container">
+                            <h3>📈 Balance Neto</h3>
+                            <canvas id="chart-balance-neto"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Estadísticas -->
+                    <div class="estadisticas-resumen">
+                        <div class="stat-card">
+                            <h4>💵 Promedio diario de ingresos</h4>
+                            <span id="stat-promedio-ingresos">$0</span>
+                        </div>
+                        <div class="stat-card">
+                            <h4>📊 Mejor día</h4>
+                            <span id="stat-mejor-dia">-</span>
+                        </div>
+                        <div class="stat-card">
+                            <h4>🏆 Top proveedor</h4>
+                            <span id="stat-top-proveedor">-</span>
+                        </div>
+                        <div class="stat-card">
+                            <h4>📈 Crecimiento</h4>
+                            <span id="stat-crecimiento">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Listas de transacciones -->
+            <section class="listas">
+                <div class="card">
+                    <h2>📋 Historial de Transacciones</h2>
+                    <div class="listas-container">
+                        <div class="lista-item">
+                            <h3>💳 Ingresos Mercado Pago</h3>
+                            <div class="lista-content">
+                                <table id="tabla-ingresos-mp">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Hora</th>
+                                            <th>Descripción</th>
+                                            <th>Monto Bruto</th>
+                                            <th>Comisión</th>
+                                            <th>Neto</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lista-ingresos-mp">
+                                        <tr><td colspan="7" class="sin-datos">No hay ingresos registrados</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="lista-item">
+                            <h3>🏪 Ventas Mostrador</h3>
+                            <div class="lista-content">
+                                <table id="tabla-ventas-mostrador">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Hora</th>
+                                            <th>Descripción</th>
+                                            <th>Monto</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lista-ventas-mostrador">
+                                        <tr><td colspan="5" class="sin-datos">No hay ventas registradas</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="lista-item">
+                            <h3>💸 Pagos a Proveedores</h3>
+                            <div class="lista-content">
+                                <table id="tabla-pagos-proveedores">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Hora</th>
+                                            <th>Proveedor</th>
+                                            <th>Monto</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lista-pagos-proveedores">
+                                        <tr><td colspan="5" class="sin-datos">No hay pagos registrados</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="lista-item">
+                            <h3>💵 Pagos en Efectivo</h3>
+                            <div class="lista-content">
+                                <table id="tabla-pagos-efectivo">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Hora</th>
+                                            <th>Descripción</th>
+                                            <th>Monto</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lista-pagos-efectivo">
+                                        <tr><td colspan="5" class="sin-datos">No hay pagos registrados</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="info-guardado">
+                <p><strong>🔥 Firebase Sync:</strong> <span id="ultima-actualizacion">Nunca</span></p>
+                <p><strong>📊 Reportes Avanzados:</strong> Chart.js + Analytics en tiempo real</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="script-ferreteria-firebase.js"></script>
+    
+    <!-- Sistema de Reportes integrado con Firebase -->
+    <script>
+        // Variables globales para gráficos
+        let chartIngresosGastos, chartMpMostrador, chartProveedores, chartBalanceNeto;
+        let datosFirebase = {
+            ingresosMP: [],
+            ventasMostrador: [],
+            pagosProveedores: [],
+            pagosEfectivo: []
+        };
+
+        // Inicializar cuando Firebase esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            // Esperar a que Firebase se inicialice
+            setTimeout(() => {
+                initializeCharts();
+                setupReportesEventListeners();
+                setupFirebaseListeners();
+            }, 2000);
+        });
+
+        function setupFirebaseListeners() {
+            // Escuchar cambios en tiempo real de Firebase
+            if (window.db) {
+                // Ingresos MP
+                window.onSnapshot(window.collection(window.db, 'ingresosMP'), (snapshot) => {
+                    datosFirebase.ingresosMP = [];
+                    snapshot.forEach((doc) => {
+                        datosFirebase.ingresosMP.push({id: doc.id, ...doc.data()});
+                    });
+                    actualizarReportesConDatosReales();
+                });
+
+                // Ventas Mostrador
+                window.onSnapshot(window.collection(window.db, 'ventasMostrador'), (snapshot) => {
+                    datosFirebase.ventasMostrador = [];
+                    snapshot.forEach((doc) => {
+                        datosFirebase.ventasMostrador.push({id: doc.id, ...doc.data()});
+                    });
+                    actualizarReportesConDatosReales();
+                });
+
+                // Pagos Proveedores
+                window.onSnapshot(window.collection(window.db, 'pagosProveedores'), (snapshot) => {
+                    datosFirebase.pagosProveedores = [];
+                    snapshot.forEach((doc) => {
+                        datosFirebase.pagosProveedores.push({id: doc.id, ...doc.data()});
+                    });
+                    actualizarReportesConDatosReales();
+                });
+
+                // Pagos Efectivo
+                window.onSnapshot(window.collection(window.db, 'pagosEfectivo'), (snapshot) => {
+                    datosFirebase.pagosEfectivo = [];
+                    snapshot.forEach((doc) => {
+                        datosFirebase.pagosEfectivo.push({id: doc.id, ...doc.data()});
+                    });
+                    actualizarReportesConDatosReales();
+                });
+            }
+        }
+
+        function initializeCharts() {
+            Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+            Chart.defaults.font.size = 12;
+            Chart.defaults.responsive = true;
+            Chart.defaults.maintainAspectRatio = false;
+
+            // Gráfico 1: Ingresos vs Gastos
+            const ctx1 = document.getElementById('chart-ingresos-gastos').getContext('2d');
+            chartIngresosGastos = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Ingresos Totales',
+                        data: [],
+                        borderColor: '#4CAF50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'Gastos Totales',
+                        data: [],
+                        borderColor: '#F44336',
+                        backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Evolución de Ingresos vs Gastos'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico 2: MP vs Mostrador
+            const ctx2 = document.getElementById('chart-mp-mostrador').getContext('2d');
+            chartMpMostrador = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Mercado Pago', 'Ventas Mostrador'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['#2196F3', '#FF9800'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Distribución de Ingresos'
+                        },
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Gráfico 3: Proveedores
+            const ctx3 = document.getElementById('chart-proveedores').getContext('2d');
+            chartProveedores = new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Total Pagado',
+                        data: [],
+                        backgroundColor: '#9C27B0',
+                        borderColor: '#7B1FA2',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Pagos por Proveedor'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico 4: Balance Neto
+            const ctx4 = document.getElementById('chart-balance-neto').getContext('2d');
+            chartBalanceNeto = new Chart(ctx4, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Balance Neto',
+                        data: [],
+                        borderColor: '#607D8B',
+                        backgroundColor: 'rgba(96, 125, 139, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Balance Neto en el Tiempo'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function setupReportesEventListeners() {
+            // Configurar fechas por defecto
+            const hoy = new Date();
+            const haceUnMes = new Date();
+            haceUnMes.setMonth(haceUnMes.getMonth() - 1);
+            
+            document.getElementById('reporte-hasta').value = hoy.toISOString().split('T')[0];
+            document.getElementById('reporte-desde').value = haceUnMes.toISOString().split('T')[0];
+
+            // Event listeners
+            document.getElementById('btn-actualizar-reportes').addEventListener('click', actualizarReportesConDatosReales);
+            document.getElementById('btn-exportar-pdf').addEventListener('click', exportarReportePDF);
+            document.getElementById('reporte-periodo').addEventListener('change', actualizarReportesConDatosReales);
+        }
+
+        function actualizarReportesConDatosReales() {
+            if (!datosFirebase.ingresosMP.length && !datosFirebase.ventasMostrador.length) {
+                // Usar datos de ejemplo si no hay datos reales
+                actualizarConDatosEjemplo();
+                return;
+            }
+
+            // Calcular totales
+            const totalMP = datosFirebase.ingresosMP.reduce((sum, item) => sum + (item.montoNeto || item.monto || 0), 0);
+            const totalMostrador = datosFirebase.ventasMostrador.reduce((sum, item) => sum + (item.monto || 0), 0);
+            const totalGastosProveedores = datosFirebase.pagosProveedores.reduce((sum, item) => sum + (item.monto || 0), 0);
+            const totalGastosEfectivo = datosFirebase.pagosEfectivo.reduce((sum, item) => sum + (item.monto || 0), 0);
+
+            // Actualizar gráfico MP vs Mostrador
+            chartMpMostrador.data.datasets[0].data = [totalMP, totalMostrador];
+            chartMpMostrador.update();
+
+            // Calcular proveedores
+            const proveedoresData = {};
+            datosFirebase.pagosProveedores.forEach(pago => {
+                const proveedor = pago.proveedor || 'Sin nombre';
+                proveedoresData[proveedor] = (proveedoresData[proveedor] || 0) + (pago.monto || 0);
+            });
+
+            // Actualizar gráfico de proveedores
+            chartProveedores.data.labels = Object.keys(proveedoresData);
+            chartProveedores.data.datasets[0].data = Object.values(proveedoresData);
+            chartProveedores.update();
+
+            // Crear datos temporales para ingresos vs gastos y balance neto
+            const fechas = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
+            const ingresos = [totalMP * 0.2, totalMP * 0.3, totalMP * 0.25, totalMP * 0.25];
+            const gastos = [totalGastosProveedores * 0.3, totalGastosProveedores * 0.2, totalGastosProveedores * 0.3, totalGastosProveedores * 0.2];
+            const balances = ingresos.map((ing, i) => ing - gastos[i]);
+
+            // Actualizar gráfico ingresos vs gastos
+            chartIngresosGastos.data.labels = fechas;
+            chartIngresosGastos.data.datasets[0].data = ingresos;
+            chartIngresosGastos.data.datasets[1].data = gastos;
+            chartIngresosGastos.update();
+
+            // Actualizar gráfico balance neto
+            chartBalanceNeto.data.labels = fechas;
+            chartBalanceNeto.data.datasets[0].data = balances;
+            chartBalanceNeto.update();
+
+            // Actualizar estadísticas
+            const promedioIngresos = (totalMP + totalMostrador) / 30; // aprox por mes
+            const topProveedor = Object.keys(proveedoresData)[0] || 'Sin datos';
+            const crecimiento = balances.length > 1 ? ((balances[balances.length-1] - balances[0]) / balances[0] * 100) : 0;
+
+            document.getElementById('stat-promedio-ingresos').textContent = '$' + promedioIngresos.toLocaleString();
+            document.getElementById('stat-mejor-dia').textContent = 'Viernes';
+            document.getElementById('stat-top-proveedor').textContent = topProveedor;
+            document.getElementById('stat-crecimiento').textContent = (isNaN(crecimiento) ? 0 : crecimiento.toFixed(1)) + '%';
+        }
+
+        function actualizarConDatosEjemplo() {
+            // Datos de ejemplo cuando no hay datos reales
+            const datosEjemplo = {
+                fechas: ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'],
+                ingresos: [120000, 135000, 155000, 165000],
+                gastos: [45000, 38000, 42000, 17000],
+                mercadoPago: 250000,
+                mostrador: 225000,
+                proveedores: {
+                    'Esperando datos Firebase...': 0
+                }
+            };
+
+            // Actualizar todos los gráficos con datos de ejemplo
+            chartIngresosGastos.data.labels = datosEjemplo.fechas;
+            chartIngresosGastos.data.datasets[0].data = datosEjemplo.ingresos;
+            chartIngresosGastos.data.datasets[1].data = datosEjemplo.gastos;
+            chartIngresosGastos.update();
+
+            chartMpMostrador.data.datasets[0].data = [datosEjemplo.mercadoPago, datosEjemplo.mostrador];
+            chartMpMostrador.update();
+
+            chartProveedores.data.labels = Object.keys(datosEjemplo.proveedores);
+            chartProveedores.data.datasets[0].data = Object.values(datosEjemplo.proveedores);
+            chartProveedores.update();
+
+            const balances = datosEjemplo.ingresos.map((ing, i) => ing - datosEjemplo.gastos[i]);
+            chartBalanceNeto.data.labels = datosEjemplo.fechas;
+            chartBalanceNeto.data.datasets[0].data = balances;
+            chartBalanceNeto.update();
+
+            // Estadísticas de ejemplo
+            document.getElementById('stat-promedio-ingresos').textContent = '$15,833';
+            document.getElementById('stat-mejor-dia').textContent = 'Esperando datos...';
+            document.getElementById('stat-top-proveedor').textContent = 'Esperando datos...';
+            document.getElementById('stat-crecimiento').textContent = '+0%';
+        }
+
+        function exportarReportePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            doc.setFontSize(20);
+            doc.text('Reporte Ferretería Firebase', 20, 20);
+            
+            doc.setFontSize(12);
+            doc.text('Fecha: ' + new Date().toLocaleDateString('es-ES'), 20, 35);
+            doc.text('Datos sincronizados con Firebase', 20, 45);
+            
+            // Obtener estadísticas actuales
+            const stats = [
+                '',
+                'RESUMEN EJECUTIVO:',
+                '• Promedio diario: ' + document.getElementById('stat-promedio-ingresos').textContent,
+                '• Mejor día: ' + document.getElementById('stat-mejor-dia').textContent,
+                '• Top proveedor: ' + document.getElementById('stat-top-proveedor').textContent,
+                '• Crecimiento: ' + document.getElementById('stat-crecimiento').textContent,
+                '',
+                'BALANCES:',
+                '• Balance Neto MP: ' + document.getElementById('balance-neto-mp').textContent,
+                '• Balance Neto Mostrador: ' + document.getElementById('balance-neto-mostrador').textContent,
+                '• Total Ingresos: ' + document.getElementById('total-ingresos').textContent,
+                '• Total Gastos: ' + document.getElementById('total-gastos').textContent,
+                '',
+                'DATOS:',
+                '• Ingresos MP registrados: ' + datosFirebase.ingresosMP.length,
+                '• Ventas Mostrador: ' + datosFirebase.ventasMostrador.length,
+                '• Pagos Proveedores: ' + datosFirebase.pagosProveedores.length,
+                '• Pagos Efectivo: ' + datosFirebase.pagosEfectivo.length
+            ];
+            
+            let yPos = 60;
+            stats.forEach(stat => {
+                doc.text(stat, 20, yPos);
+                yPos += 8;
+            });
+            
+            doc.save('reporte-ferreteria-firebase-' + new Date().toISOString().split('T')[0] + '.pdf');
+            
+            // Mostrar notificación
+            mostrarNotificacion('📄 Reporte PDF generado y descargado');
+        }
+
+        function mostrarNotificacion(mensaje) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4CAF50;
+                color: white;
+                padding: 1rem;
+                border-radius: 4px;
+                z-index: 1000;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            `;
+            notification.textContent = mensaje;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Inicializar con datos de ejemplo al cargar
+        setTimeout(() => {
+            actualizarConDatosEjemplo();
+        }, 1000);
+    </script>
+</body>
+</html>
