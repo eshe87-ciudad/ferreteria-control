@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Ferretería - Reportes Demo</title>
+    <link rel="stylesheet" href="styles-ferreteria.css">
+    
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- jsPDF para exportar reportes a PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        /* ===== ESTILOS PARA REPORTES Y GRÁFICOS ===== */
+
+        .reportes {
+            margin-top: 2rem;
+        }
+
+        .reportes-filtros {
+            display: grid;
+            grid-template-columns: auto auto 1fr;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .filtros-periodo {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filtros-fechas {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filtros-fechas input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .reportes-acciones {
+            display: flex;
+            gap: 0.5rem;
+            justify-self: end;
+        }
+
+        .graficos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .grafico-container {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+        }
+
+        .grafico-container h3 {
+            margin: 0 0 1rem 0;
+            color: #333;
+            font-size: 1.1rem;
+            text-align: center;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 0.5rem;
+        }
+
+        .grafico-container canvas {
+            max-height: 300px;
+            width: 100% !important;
+            height: 300px !important;
+        }
+
+        .estadisticas-resumen {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.9rem;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
+        .stat-card span {
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .btn-demo {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+        }
+
+        .btn-demo:hover {
+            background: #45a049;
+        }
+
+        .btn-pdf {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+        }
+
+        .btn-pdf:hover {
+            background: #1976D2;
+        }
+
+        .formulario-demo {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+        }
+
+        .formulario-demo h4 {
+            margin: 0 0 1rem 0;
+            color: #333;
+        }
+
+        .formulario-demo input {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .formulario-demo button {
+            width: 100%;
+            padding: 0.5rem;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .sync-status {
+            text-align: center;
+            margin: 1rem 0;
+            padding: 0.5rem;
+            background: #d4edda;
+            color: #155724;
+            border-radius: 4px;
+            border: 1px solid #c3e6cb;
+        }
+
+        .stat-card:nth-child(1) {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        }
+
+        .stat-card:nth-child(2) {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+        }
+
+        .stat-card:nth-child(3) {
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+        }
+
+        .stat-card:nth-child(4) {
+            background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+        }
+
+        @media (max-width: 768px) {
+            .reportes-filtros {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .reportes-acciones {
+                justify-self: stretch;
+            }
+            
+            .graficos-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .grafico-container {
+                padding: 1rem;
+            }
+            
+            .estadisticas-resumen {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Control Ferretería - Reportes DEMO</h1>
+            <p>Sistema de Reportes Avanzados • Gráficos Interactivos • Sin Firebase</p>
+            <div class="sync-status">
+                <span>✅ Sistema funcionando - Datos de demostración cargados</span>
+            </div>
+        </header>
+
+        <main>
+            <!-- Dashboard de resumen -->
+            <section class="dashboard">
+                <div class="card">
+                    <h2>📊 Resumen General</h2>
+                    <div class="dashboard-grid">
+                        <div class="dashboard-item balance-neto-mp">
+                            <div class="dashboard-icon">💳</div>
+                            <div class="dashboard-info">
+                                <h3>Balance Neto MP</h3>
+                                <span id="balance-neto-mp">$247,293.50</span>
+                                <small>MP: $350,000 - Transferencias: $102,706.50</small>
+                            </div>
+                        </div>
+                        <div class="dashboard-item balance-neto-mostrador">
+                            <div class="dashboard-icon">🏪</div>
+                            <div class="dashboard-info">
+                                <h3>Balance Neto Mostrador</h3>
+                                <span id="balance-neto-mostrador">$185,500</span>
+                                <small>Mostrador: $225,000 - Efectivo: $39,500</small>
+                            </div>
+                        </div>
+                        <div class="dashboard-item total-ingresos">
+                            <div class="dashboard-icon">💰</div>
+                            <div class="dashboard-info">
+                                <h3>Ingresos Totales</h3>
+                                <span id="total-ingresos">$575,000</span>
+                                <small>48 transacciones</small>
+                            </div>
+                        </div>
+                        <div class="dashboard-item total-gastos">
+                            <div class="dashboard-icon">💸</div>
+                            <div class="dashboard-info">
+                                <h3>Gastos Totales</h3>
+                                <span id="total-gastos">$142,206.50</span>
+                                <small>23 transacciones</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reportes y estadísticas -->
+            <section class="reportes">
+                <div class="card">
+                    <h2>📊 Reportes y Analytics</h2>
+                    
+                    <!-- Controles de período para reportes -->
+                    <div class="reportes-filtros">
+                        <div class="filtros-periodo">
+                            <label for="reporte-periodo">Período del reporte:</label>
+                            <select id="reporte-periodo">
+                                <option value="dia">Por día</option>
+                                <option value="semana">Por semana</option>
+                                <option value="mes" selected>Por mes</option>
+                                <option value="trimestre">Por trimestre</option>
+                            </select>
+                        </div>
+                        <div class="filtros-fechas">
+                            <label for="reporte-desde">Desde:</label>
+                            <input type="date" id="reporte-desde">
+                            <label for="reporte-hasta">Hasta:</label>
+                            <input type="date" id="reporte-hasta">
+                        </div>
+                        <div class="reportes-acciones">
+                            <button id="btn-actualizar-reportes" class="btn-demo">🔄 Actualizar</button>
+                            <button id="btn-exportar-pdf" class="btn-pdf">📄 Exportar PDF</button>
+                        </div>
+                    </div>
+
+                    <!-- Grid de gráficos -->
+                    <div class="graficos-grid">
+                        <!-- Gráfico 1: Ingresos vs Gastos -->
+                        <div class="grafico-container">
+                            <h3>💰 Ingresos vs Gastos</h3>
+                            <canvas id="chart-ingresos-gastos"></canvas>
+                        </div>
+
+                        <!-- Gráfico 2: MP vs Mostrador -->
+                        <div class="grafico-container">
+                            <h3>💳 Mercado Pago vs Mostrador</h3>
+                            <canvas id="chart-mp-mostrador"></canvas>
+                        </div>
+
+                        <!-- Gráfico 3: Tendencias de Proveedores -->
+                        <div class="grafico-container">
+                            <h3>🏪 Top Proveedores</h3>
+                            <canvas id="chart-proveedores"></canvas>
+                        </div>
+
+                        <!-- Gráfico 4: Balance Neto en el tiempo -->
+                        <div class="grafico-container">
+                            <h3>📈 Balance Neto Semanal</h3>
+                            <canvas id="chart-balance-neto"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Resumen estadístico -->
+                    <div class="estadisticas-resumen">
+                        <div class="stat-card">
+                            <h4>💵 Promedio diario de ingresos</h4>
+                            <span id="stat-promedio-ingresos">$19,166</span>
+                        </div>
+                        <div class="stat-card">
+                            <h4>📊 Mejor día de la semana</h4>
+                            <span id="stat-mejor-dia">Viernes</span>
+                        </div>
+                        <div class="stat-card">
+                            <h4>🏆 Proveedor más frecuente</h4>
+                            <span id="stat-top-proveedor">Ferretería Central</span>
+                        </div>
+                        <div class="stat-card">
+                            <h4>📈 Crecimiento mensual</h4>
+                            <span id="stat-crecimiento">+15.3%</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Simulador de transacciones -->
+            <section class="formularios">
+                <div class="card">
+                    <h2>⚡ Simulador de Transacciones</h2>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                        <!-- Ingreso MP -->
+                        <div class="formulario-demo">
+                            <h4>💳 Ingreso MP</h4>
+                            <input type="text" id="demo-mp-desc" placeholder="Descripción" value="Venta herramientas">
+                            <input type="number" id="demo-mp-monto" placeholder="Monto" value="25000">
+                            <button id="btn-demo-mp" style="background: #2196F3;">Simular Ingreso</button>
+                        </div>
+                        
+                        <!-- Venta Mostrador -->
+                        <div class="formulario-demo">
+                            <h4>🏪 Venta Mostrador</h4>
+                            <input type="text" id="demo-mostrador-desc" placeholder="Descripción" value="Venta tornillos">
+                            <input type="number" id="demo-mostrador-monto" placeholder="Monto" value="8500">
+                            <button id="btn-demo-mostrador" style="background: #FF9800;">Simular Venta</button>
+                        </div>
+                        
+                        <!-- Pago Proveedor -->
+                        <div class="formulario-demo">
+                            <h4>💸 Pago Proveedor</h4>
+                            <input type="text" id="demo-proveedor-desc" placeholder="Proveedor" value="Proveedor Nuevo">
+                            <input type="number" id="demo-proveedor-monto" placeholder="Monto" value="15000">
+                            <button id="btn-demo-proveedor" style="background: #9C27B0;">Simular Pago</button>
+                        </div>
+                        
+                        <!-- Pago Efectivo -->
+                        <div class="formulario-demo">
+                            <h4>💵 Pago Efectivo</h4>
+                            <input type="text" id="demo-efectivo-desc" placeholder="Descripción" value="Compra combustible">
+                            <input type="number" id="demo-efectivo-monto" placeholder="Monto" value="5000">
+                            <button id="btn-demo-efectivo" style="background: #4CAF50;">Simular Pago</button>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 1rem; padding: 1rem; background: #fff3cd; border-radius: 4px; border: 1px solid #ffeaa7;">
+                        <strong>💡 DEMO MODE:</strong> Los cambios simulados actualizarán los gráficos en tiempo real
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="info-guardado">
+                <p><strong>🎮 Modo Demo:</strong> Sistema funcionando sin Firebase</p>
+                <p><strong>📊 Tecnología:</strong> Chart.js + jsPDF + JavaScript ES6</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Variables globales para los gráficos
+        let chartIngresosGastos, chartMpMostrador, chartProveedores, chartBalanceNeto;
+        
+        // Datos demo actualizables
+        let datosDemo = {
+            ingresoMP: 350000,
+            ventaMostrador: 225000,
+            pagoProveedores: 102706.50,
+            pagoEfectivo: 39500,
+            proveedores: {
+                'Ferretería Central': 45000,
+                'Proveedor Norte': 32000,
+                'Distribuidora Sur': 25706.50
+            }
+        };
+
+        // Inicializar cuando la página esté lista
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            setupEventListeners();
+            actualizarTodoElSistema();
+        });
+
+        function initializeCharts() {
+            Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+            Chart.defaults.font.size = 12;
+            Chart.defaults.responsive = true;
+            Chart.defaults.maintainAspectRatio = false;
+
+            // Gráfico 1: Ingresos vs Gastos
+            const ctx1 = document.getElementById('chart-ingresos-gastos').getContext('2d');
+            chartIngresosGastos = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'],
+                    datasets: [{
+                        label: 'Ingresos',
+                        data: [120000, 135000, 155000, 165000],
+                        borderColor: '#4CAF50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'Gastos',
+                        data: [45000, 38000, 42000, 17206.50],
+                        borderColor: '#F44336',
+                        backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Evolución Semanal de Ingresos vs Gastos'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico 2: MP vs Mostrador
+            const ctx2 = document.getElementById('chart-mp-mostrador').getContext('2d');
+            chartMpMostrador = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Mercado Pago', 'Ventas Mostrador'],
+                    datasets: [{
+                        data: [datosDemo.ingresoMP, datosDemo.ventaMostrador],
+                        backgroundColor: ['#2196F3', '#FF9800'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Distribución de Ingresos'
+                        },
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Gráfico 3: Proveedores
+            const ctx3 = document.getElementById('chart-proveedores').getContext('2d');
+            chartProveedores = new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(datosDemo.proveedores),
+                    datasets: [{
+                        label: 'Total Pagado',
+                        data: Object.values(datosDemo.proveedores),
+                        backgroundColor: '#9C27B0',
+                        borderColor: '#7B1FA2',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Pagos por Proveedor'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico 4: Balance Neto
+            const ctx4 = document.getElementById('chart-balance-neto').getContext('2d');
+            chartBalanceNeto = new Chart(ctx4, {
+                type: 'line',
+                data: {
+                    labels: ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'],
+                    datasets: [{
+                        label: 'Balance Neto',
+                        data: [75000, 97000, 113000, 147793.50],
+                        borderColor: '#607D8B',
+                        backgroundColor: 'rgba(96, 125, 139, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Evolución del Balance Neto'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function setupEventListeners() {
+            // Configurar fechas por defecto
+            const hoy = new Date();
+            const haceUnMes = new Date();
+            haceUnMes.setMonth(haceUnMes.getMonth() - 1);
+            
+            document.getElementById('reporte-hasta').value = hoy.toISOString().split('T')[0];
+            document.getElementById('reporte-desde').value = haceUnMes.toISOString().split('T')[0];
+
+            // Botones de reportes
+            document.getElementById('btn-actualizar-reportes').addEventListener('click', actualizarGraficos);
+            document.getElementById('btn-exportar-pdf').addEventListener('click', exportarPDF);
+
+            // Simuladores
+            document.getElementById('btn-demo-mp').addEventListener('click', simularIngresoMP);
+            document.getElementById('btn-demo-mostrador').addEventListener('click', simularVentaMostrador);
+            document.getElementById('btn-demo-proveedor').addEventListener('click', simularPagoProveedor);
+            document.getElementById('btn-demo-efectivo').addEventListener('click', simularPagoEfectivo);
+        }
+
+        function simularIngresoMP() {
+            const monto = parseFloat(document.getElementById('demo-mp-monto').value) || 0;
+            datosDemo.ingresoMP += monto;
+            actualizarTodoElSistema();
+            mostrarNotificacion(`✅ Ingreso MP simulado: $${monto.toLocaleString()}`);
+        }
+
+        function simularVentaMostrador() {
+            const monto = parseFloat(document.getElementById('demo-mostrador-monto').value) || 0;
+            datosDemo.ventaMostrador += monto;
+            actualizarTodoElSistema();
+            mostrarNotificacion(`✅ Venta Mostrador simulada: $${monto.toLocaleString()}`);
+        }
+
+        function simularPagoProveedor() {
+            const proveedor = document.getElementById('demo-proveedor-desc').value || 'Proveedor';
+            const monto = parseFloat(document.getElementById('demo-proveedor-monto').value) || 0;
+            
+            if (datosDemo.proveedores[proveedor]) {
+                datosDemo.proveedores[proveedor] += monto;
+            } else {
+                datosDemo.proveedores[proveedor] = monto;
+            }
+            
+            datosDemo.pagoProveedores += monto;
+            actualizarTodoElSistema();
+            mostrarNotificacion(`✅ Pago a ${proveedor}: $${monto.toLocaleString()}`);
+        }
+
+        function simularPagoEfectivo() {
+            const monto = parseFloat(document.getElementById('demo-efectivo-monto').value) || 0;
+            datosDemo.pagoEfectivo += monto;
+            actualizarTodoElSistema();
+            mostrarNotificacion(`✅ Pago Efectivo simulado: $${monto.toLocaleString()}`);
+        }
+
+        function actualizarTodoElSistema() {
+            // Actualizar dashboard
+            const balanceMP = datosDemo.ingresoMP - datosDemo.pagoProveedores;
+            const balanceMostrador = datosDemo.ventaMostrador - datosDemo.pagoEfectivo;
+            const totalIngresos = datosDemo.ingresoMP + datosDemo.ventaMostrador;
+            const totalGastos = datosDemo.pagoProveedores + datosDemo.pagoEfectivo;
+
+            document.getElementById('balance-neto-mp').textContent = '$' + balanceMP.toLocaleString();
+            document.getElementById('balance-neto-mostrador').textContent = '$' + balanceMostrador.toLocaleString();
+            document.getElementById('total-ingresos').textContent = '$' + totalIngresos.toLocaleString();
+            document.getElementById('total-gastos').textContent = '$' + totalGastos.toLocaleString();
+
+            // Actualizar gráficos
+            actualizarGraficos();
+        }
+
+        function actualizarGraficos() {
+            // Actualizar MP vs Mostrador
+            chartMpMostrador.data.datasets[0].data = [datosDemo.ingresoMP, datosDemo.ventaMostrador];
+            chartMpMostrador.update();
+
+            // Actualizar Proveedores
+            chartProveedores.data.labels = Object.keys(datosDemo.proveedores);
+            chartProveedores.data.datasets[0].data = Object.values(datosDemo.proveedores);
+            chartProveedores.update();
+
+            mostrarNotificacion('📊 Gráficos actualizados');
+        }
+
+        function exportarPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            doc.setFontSize(20);
+            doc.text('Reporte Ferretería - DEMO', 20, 20);
+            
+            doc.setFontSize(12);
+            doc.text('Fecha: ' + new Date().toLocaleDateString('es-ES'), 20, 35);
+            
+            const stats = [
+                'Balance Neto MP: $' + (datosDemo.ingresoMP - datosDemo.pagoProveedores).toLocaleString(),
+                'Balance Neto Mostrador: $' + (datosDemo.ventaMostrador - datosDemo.pagoEfectivo).toLocaleString(),
+                'Total Ingresos: $' + (datosDemo.ingresoMP + datosDemo.ventaMostrador).toLocaleString(),
+                'Total Gastos: $' + (datosDemo.pagoProveedores + datosDemo.pagoEfectivo).toLocaleString(),
+                '',
+                'Top Proveedores:',
+                ...Object.entries(datosDemo.proveedores).map(([prov, monto]) => `  • ${prov}: $${monto.toLocaleString()}`)
+            ];
+            
+            let yPos = 50;
+            stats.forEach(stat => {
+                doc.text(stat, 20, yPos);
+                yPos += 8;
+            });
+            
+            doc.save('reporte-ferreteria-demo-' + new Date().toISOString().split('T')[0] + '.pdf');
+            mostrarNotificacion('📄 Reporte PDF descargado');
+        }
+
+        function mostrarNotificacion(mensaje) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4CAF50;
+                color: white;
+                padding: 1rem;
+                border-radius: 4px;
+                z-index: 1000;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            `;
+            notification.textContent = mensaje;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
