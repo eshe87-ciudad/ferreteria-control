@@ -246,10 +246,9 @@ class ControlFerreteriaFirebase {
 
     // Agregar Venta Mostrador
     async agregarVentaMostrador() {
-        const descripcion = document.getElementById('descripcion-venta-mostrador').value.trim();
-        const monto = parseFloat(document.getElementById('monto-venta-mostrador').value);
-        const categoria = document.getElementById('categoria-venta-mostrador').value;
-        const cliente = document.getElementById('cliente-mostrador').value.trim();
+        const descripcion = document.getElementById('mostrador-descripcion').value.trim();
+        const monto = parseFloat(document.getElementById('mostrador-monto').value);
+        const metodoPago = document.getElementById('mostrador-metodo').value;
 
         if (!descripcion || !monto || monto <= 0) {
             alert('Por favor, completa descripción y monto correctamente');
@@ -259,8 +258,7 @@ class ControlFerreteriaFirebase {
         const venta = {
             descripcion,
             monto,
-            categoria: categoria || 'Sin categoría',
-            cliente: cliente || 'Cliente general',
+            metodoPago,
             fecha: new Date().toLocaleDateString(),
             hora: new Date().toLocaleTimeString('es-ES', { 
                 hour: '2-digit', 
@@ -283,10 +281,9 @@ class ControlFerreteriaFirebase {
             await addDoc(collection(this.db, 'ventasMostrador'), venta);
             
             // Limpiar formulario
-            document.getElementById('descripcion-venta-mostrador').value = '';
-            document.getElementById('monto-venta-mostrador').value = '';
-            document.getElementById('categoria-venta-mostrador').value = '';
-            document.getElementById('cliente-mostrador').value = '';
+            document.getElementById('mostrador-descripcion').value = '';
+            document.getElementById('mostrador-monto').value = '';
+            document.getElementById('mostrador-metodo').value = 'efectivo';
             
             this.updateSyncStatus('Sincronizado', 'success');
             
@@ -299,23 +296,19 @@ class ControlFerreteriaFirebase {
 
     // Agregar Pago Proveedor
     async agregarPagoProveedor() {
-        const proveedor = document.getElementById('proveedor-transferencia').value.trim();
-        const descripcion = document.getElementById('descripcion-pago-proveedor').value.trim();
-        const monto = parseFloat(document.getElementById('monto-pago-proveedor').value);
-        const factura = document.getElementById('numero-factura').value.trim();
-        const estado = document.getElementById('estado-pago-proveedor').value;
+        const proveedor = document.getElementById('proveedor-nombre').value.trim();
+        const monto = parseFloat(document.getElementById('proveedor-monto').value);
+        const metodoPago = document.getElementById('proveedor-metodo').value;
 
-        if (!proveedor || !descripcion || !monto || monto <= 0) {
+        if (!proveedor || !monto || monto <= 0) {
             alert('Por favor, completa todos los campos obligatorios');
             return;
         }
 
         const pago = {
             proveedor,
-            descripcion,
             monto,
-            numeroFactura: factura || '',
-            estado,
+            metodoPago,
             fecha: new Date().toLocaleDateString(),
             hora: new Date().toLocaleTimeString('es-ES', { 
                 hour: '2-digit', 
@@ -341,11 +334,9 @@ class ControlFerreteriaFirebase {
             this.agregarProveedorRecurrente(proveedor);
             
             // Limpiar formulario
-            document.getElementById('proveedor-transferencia').value = '';
-            document.getElementById('descripcion-pago-proveedor').value = '';
-            document.getElementById('monto-pago-proveedor').value = '';
-            document.getElementById('numero-factura').value = '';
-            document.getElementById('estado-pago-proveedor').value = 'pagado';
+            document.getElementById('proveedor-nombre').value = '';
+            document.getElementById('proveedor-monto').value = '';
+            document.getElementById('proveedor-metodo').value = 'transferencia';
             
             this.updateSyncStatus('Sincronizado', 'success');
             
@@ -452,24 +443,33 @@ class ControlFerreteriaFirebase {
     }
 
     mostrarVentasMostrador(limite = 5) {
-        const tbody = document.getElementById('tabla-ventas-mostrador');
+        const tbody = document.getElementById('lista-ventas-mostrador');
         if (!tbody) return;
         
         tbody.innerHTML = '';
         const ventas = this.ventasMostrador.slice(0, limite);
 
+        if (ventas.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="sin-datos">No hay ventas registradas</td></tr>';
+            return;
+        }
+
         ventas.forEach(venta => {
+            // Determinar el badge de método
+            const metodoBadge = venta.metodoPago === 'efectivo' 
+                ? '<span class="metodo-badge metodo-efectivo">💵 Efectivo</span>'
+                : '<span class="metodo-badge metodo-transferencia">💳 Transferencia</span>';
+            
             const row = tbody.insertRow();
             row.innerHTML = `
                 <td data-label="Fecha">${venta.fecha || 'Sin fecha'}</td>
                 <td data-label="Hora">${venta.hora || '--:--'}</td>
                 <td data-label="Descripción">${venta.descripcion}</td>
-                <td data-label="Categoría">${venta.categoria || 'Sin categoría'}</td>
-                <td data-label="Cliente">${venta.cliente || 'Cliente general'}</td>
                 <td data-label="Monto">$${venta.monto.toFixed(2)}</td>
+                <td data-label="Método">${metodoBadge}</td>
                 <td data-label="Acciones">
                     <button onclick="control.eliminarRegistro('${venta.id}', 'ventasMostrador')" class="btn-eliminar">
-                        🗑️ Eliminar
+                        🗑️
                     </button>
                 </td>
             `;
@@ -477,27 +477,33 @@ class ControlFerreteriaFirebase {
     }
 
     mostrarPagosProveedores(limite = 5) {
-        const tbody = document.getElementById('tabla-pagos-proveedores');
+        const tbody = document.getElementById('lista-pagos-proveedores');
         if (!tbody) return;
         
         tbody.innerHTML = '';
         const pagos = this.pagosProveedores.slice(0, limite);
 
+        if (pagos.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="sin-datos">No hay pagos registrados</td></tr>';
+            return;
+        }
+
         pagos.forEach(pago => {
-            const row = tbody.insertRow();
-            const estadoClass = pago.estado === 'pendiente' ? 'estado-pendiente' : 'estado-pagado';
+            // Determinar el badge de método
+            const metodoBadge = pago.metodoPago === 'efectivo' 
+                ? '<span class="metodo-badge metodo-efectivo">💵 Efectivo</span>'
+                : '<span class="metodo-badge metodo-transferencia">💳 Transferencia</span>';
             
+            const row = tbody.insertRow();
             row.innerHTML = `
                 <td data-label="Fecha">${pago.fecha || 'Sin fecha'}</td>
                 <td data-label="Hora">${pago.hora || '--:--'}</td>
                 <td data-label="Proveedor">${pago.proveedor}</td>
-                <td data-label="Descripción">${pago.descripcion}</td>
-                <td data-label="Factura">${pago.numeroFactura || 'Sin factura'}</td>
                 <td data-label="Monto">$${pago.monto.toFixed(2)}</td>
-                <td data-label="Estado"><span class="${estadoClass}">${pago.estado}</span></td>
+                <td data-label="Método">${metodoBadge}</td>
                 <td data-label="Acciones">
                     <button onclick="control.eliminarRegistro('${pago.id}', 'pagosProveedores')" class="btn-eliminar">
-                        🗑️ Eliminar
+                        🗑️
                     </button>
                 </td>
             `;
@@ -693,31 +699,29 @@ class ControlFerreteriaFirebase {
     }
 
     setupEventListeners() {
-        // Botones principales
-        document.getElementById('btn-agregar-ingreso-mp')?.addEventListener('click', () => this.agregarIngresoMP());
-        document.getElementById('btn-agregar-venta-mostrador')?.addEventListener('click', () => this.agregarVentaMostrador());
-        document.getElementById('btn-agregar-pago-proveedor')?.addEventListener('click', () => this.agregarPagoProveedor());
-        document.getElementById('btn-agregar-pago-efectivo')?.addEventListener('click', () => this.agregarPagoEfectivo());
+        // Event listeners para formularios usando submit
+        document.getElementById('form-ingreso-mp')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.agregarIngresoMP();
+        });
+        
+        document.getElementById('form-venta-mostrador')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.agregarVentaMostrador();
+        });
+        
+        document.getElementById('form-pago-proveedor')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.agregarPagoProveedor();
+        });
+        
+        document.getElementById('form-pago-efectivo')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.agregarPagoEfectivo();
+        });
         
         // Botones de gestión
         document.getElementById('btn-exportar')?.addEventListener('click', () => this.exportarDatos());
-        
-        // Enter en formularios
-        document.getElementById('monto-ingreso-mp')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.agregarIngresoMP();
-        });
-        
-        document.getElementById('monto-venta-mostrador')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.agregarVentaMostrador();
-        });
-
-        document.getElementById('monto-pago-proveedor')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.agregarPagoProveedor();
-        });
-
-        document.getElementById('monto-pago-efectivo')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.agregarPagoEfectivo();
-        });
 
         // Detectar conexión/desconexión
         window.addEventListener('online', () => {
