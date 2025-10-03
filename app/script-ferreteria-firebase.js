@@ -739,23 +739,37 @@ class ControlFerreteriaFirebase {
     }
 
     setupEventListeners() {
+        console.log('🔗 Configurando event listeners...');
+        
         // Event listeners para formularios usando submit
-        document.getElementById('form-ingreso-mp')?.addEventListener('submit', (e) => {
+        const formIngresoMP = document.getElementById('form-ingreso-mp');
+        console.log('form-ingreso-mp encontrado:', !!formIngresoMP);
+        formIngresoMP?.addEventListener('submit', (e) => {
+            console.log('📝 Submit form-ingreso-mp');
             e.preventDefault();
             this.agregarIngresoMP();
         });
         
-        document.getElementById('form-venta-mostrador')?.addEventListener('submit', (e) => {
+        const formVentaMostrador = document.getElementById('form-venta-mostrador');
+        console.log('form-venta-mostrador encontrado:', !!formVentaMostrador);
+        formVentaMostrador?.addEventListener('submit', (e) => {
+            console.log('📝 Submit form-venta-mostrador');
             e.preventDefault();
             this.agregarVentaMostrador();
         });
         
-        document.getElementById('form-pago-proveedor')?.addEventListener('submit', (e) => {
+        const formPagoProveedor = document.getElementById('form-pago-proveedor');
+        console.log('form-pago-proveedor encontrado:', !!formPagoProveedor);
+        formPagoProveedor?.addEventListener('submit', (e) => {
+            console.log('📝 Submit form-pago-proveedor');
             e.preventDefault();
             this.agregarPagoProveedor();
         });
         
-        document.getElementById('form-pago-efectivo')?.addEventListener('submit', (e) => {
+        const formPagoEfectivo = document.getElementById('form-pago-efectivo');
+        console.log('form-pago-efectivo encontrado:', !!formPagoEfectivo);
+        formPagoEfectivo?.addEventListener('submit', (e) => {
+            console.log('📝 Submit form-pago-efectivo');
             e.preventDefault();
             this.agregarPagoEfectivo();
         });
@@ -1007,7 +1021,13 @@ ${metodoIconProv} Monto: $${datos.monto.toFixed(2)}
 
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
-    window.control = new ControlFerreteriaFirebase();
+    console.log('🔥 Inicializando ControlFerreteriaFirebase...');
+    try {
+        window.control = new ControlFerreteriaFirebase();
+        console.log('✅ Control inicializado correctamente:', window.control);
+    } catch (error) {
+        console.error('❌ Error inicializando control:', error);
+    }
 });
 
 // Cleanup al cerrar la página
