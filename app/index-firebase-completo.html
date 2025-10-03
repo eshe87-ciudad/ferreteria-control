@@ -48,10 +48,8 @@
         window.signInAnonymously = signInAnonymously;
         window.onAuthStateChanged = onAuthStateChanged;
 
-        // Initialize the app when Firebase is ready
-        window.addEventListener('load', () => {
-            initializeApp();
-        });
+        // Firebase está listo - el script se inicializará con DOMContentLoaded
+        console.log('Firebase configurado correctamente');
     </script>
 
     <style>
