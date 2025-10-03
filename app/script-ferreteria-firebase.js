@@ -203,11 +203,13 @@ class ControlFerreteriaFirebase {
 
     // Agregar Ingreso Mercado Pago
     async agregarIngresoMP() {
-        const descripcion = document.getElementById('descripcion-ingreso-mp').value.trim();
-        const monto = parseFloat(document.getElementById('monto-ingreso-mp').value);
-        const comision = parseFloat(document.getElementById('comision-mp').value) || 0;
-        const categoria = document.getElementById('categoria-ingreso-mp').value;
-        const cliente = document.getElementById('cliente-mp').value.trim();
+        console.log('💳 Agregando ingreso MP...');
+        
+        const descripcion = document.getElementById('mp-descripcion')?.value.trim();
+        const monto = parseFloat(document.getElementById('mp-monto')?.value);
+        const comision = parseFloat(document.getElementById('mp-comision')?.value) || 0;
+
+        console.log('Datos obtenidos:', { descripcion, monto, comision });
 
         if (!descripcion || !monto || monto <= 0) {
             alert('Por favor, completa descripción y monto correctamente');
@@ -219,8 +221,6 @@ class ControlFerreteriaFirebase {
             monto,
             comision,
             montoNeto: monto - comision,
-            categoria: categoria || 'Sin categoría',
-            cliente: cliente || 'Cliente general',
             fecha: new Date().toLocaleDateString(),
             hora: new Date().toLocaleTimeString('es-ES', { 
                 hour: '2-digit', 
@@ -249,12 +249,11 @@ class ControlFerreteriaFirebase {
             });
             
             // Limpiar formulario
-            document.getElementById('descripcion-ingreso-mp').value = '';
-            document.getElementById('monto-ingreso-mp').value = '';
-            document.getElementById('comision-mp').value = '';
-            document.getElementById('categoria-ingreso-mp').value = '';
-            document.getElementById('cliente-mp').value = '';
+            document.getElementById('mp-descripcion').value = '';
+            document.getElementById('mp-monto').value = '';
+            document.getElementById('mp-comision').value = '';
             
+            console.log('✅ Ingreso MP agregado correctamente');
             this.updateSyncStatus('Sincronizado', 'success');
             
         } catch (error) {
@@ -383,21 +382,21 @@ class ControlFerreteriaFirebase {
 
     // Agregar Pago Efectivo
     async agregarPagoEfectivo() {
-        const proveedor = document.getElementById('proveedor-efectivo').value.trim();
-        const descripcion = document.getElementById('descripcion-pago-efectivo').value.trim();
-        const monto = parseFloat(document.getElementById('monto-pago-efectivo').value);
-        const recibo = document.getElementById('recibo-efectivo').value.trim();
+        console.log('💵 Agregando pago efectivo...');
+        
+        const descripcion = document.getElementById('efectivo-descripcion')?.value.trim();
+        const monto = parseFloat(document.getElementById('efectivo-monto')?.value);
 
-        if (!proveedor || !descripcion || !monto || monto <= 0) {
+        console.log('Datos obtenidos:', { descripcion, monto });
+
+        if (!descripcion || !monto || monto <= 0) {
             alert('Por favor, completa todos los campos obligatorios');
             return;
         }
 
         const pago = {
-            proveedor,
             descripcion,
             monto,
-            numeroRecibo: recibo || '',
             fecha: new Date().toLocaleDateString(),
             hora: new Date().toLocaleTimeString('es-ES', { 
                 hour: '2-digit', 
@@ -426,11 +425,10 @@ class ControlFerreteriaFirebase {
             });
             
             // Limpiar formulario
-            document.getElementById('proveedor-efectivo').value = '';
-            document.getElementById('descripcion-pago-efectivo').value = '';
-            document.getElementById('monto-pago-efectivo').value = '';
-            document.getElementById('recibo-efectivo').value = '';
+            document.getElementById('efectivo-descripcion').value = '';
+            document.getElementById('efectivo-monto').value = '';
             
+            console.log('✅ Pago efectivo agregado correctamente');
             this.updateSyncStatus('Sincronizado', 'success');
             
         } catch (error) {
