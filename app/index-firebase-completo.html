@@ -50,6 +50,20 @@
 
         // Firebase está listo - el script se inicializará con DOMContentLoaded
         console.log('Firebase configurado correctamente');
+        
+        // Debugging adicional
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM Content Loaded - verificando script');
+            console.log('window.control existe?', !!window.control);
+        });
+        
+        // Fallback si el script no carga
+        setTimeout(() => {
+            if (!window.control) {
+                console.warn('Script principal no cargado, hay un problema con script-ferreteria-firebase.js');
+                document.getElementById('sync-indicator').textContent = '❌ Error cargando script';
+            }
+        }, 3000);
     </script>
 
     <style>
@@ -544,7 +558,7 @@
         </footer>
     </div>
 
-    <script src="script-ferreteria-firebase.js"></script>
+    <script type="module" src="script-ferreteria-firebase.js"></script>
     
     <!-- Sistema de Reportes integrado con Firebase -->
     <script>
