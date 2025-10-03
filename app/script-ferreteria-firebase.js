@@ -15,7 +15,8 @@ import {
     query, 
     orderBy,
     serverTimestamp,
-    writeBatch 
+    writeBatch,
+    getDocs
 } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
 
 import { 
@@ -811,6 +812,11 @@ class ControlFerreteriaFirebase {
             this.probarWhatsApp();
         });
         
+        // Event listener para reset completo
+        document.getElementById('btn-reset-todo')?.addEventListener('click', () => {
+            this.resetearTodosLosDatos();
+        });
+        
         // Event listeners para configuración WhatsApp
         ['twilio-sid', 'twilio-token', 'whatsapp-numero'].forEach(id => {
             document.getElementById(id)?.addEventListener('input', () => {
@@ -829,6 +835,62 @@ class ControlFerreteriaFirebase {
     }
 
     // ===== FUNCIONES WHATSAPP =====
+    
+    async resetearTodosLosDatos() {
+        const confirmacion = confirm('⚠️ ATENCIÓN: Esto borrará TODOS los datos del sistema.\n\n¿Estás completamente seguro?\n\nEsta acción NO se puede deshacer.');
+        
+        if (!confirmacion) return;
+        
+        const segundaConfirmacion = confirm('🚨 ÚLTIMA CONFIRMACIÓN\n\nVas a borrar:\n• Todos los ingresos de MercadoPago\n• Todas las ventas de mostrador\n• Todos los pagos a proveedores\n• Todos los pagos en efectivo\n\n¿Continuar?');
+        
+        if (!segundaConfirmacion) return;
+        
+        try {
+            this.updateSyncStatus('Borrando datos...', 'warning');
+            console.log('🗑️ Iniciando borrado completo de datos...');
+            
+            // Borrar todas las colecciones de Firebase
+            const colecciones = ['ingresosMP', 'ventasMostrador', 'pagosProveedores', 'pagosEfectivo'];
+            
+            for (const coleccion of colecciones) {
+                console.log(`Borrando colección: ${coleccion}`);
+                const querySnapshot = await getDocs(collection(this.db, coleccion));
+                
+                const deletePromises = querySnapshot.docs.map(doc => 
+                    deleteDoc(doc.ref)
+                );
+                
+                await Promise.all(deletePromises);
+                console.log(`✅ Colección ${coleccion} borrada (${querySnapshot.docs.length} documentos)`);
+            }
+            
+            // Limpiar arrays locales
+            this.ingresosMP = [];
+            this.ventasMostrador = [];
+            this.pagosProveedores = [];
+            this.pagosEfectivo = [];
+            
+            // Limpiar localStorage
+            localStorage.removeItem('ferreteriaData');
+            localStorage.removeItem('proveedoresRecurrentes');
+            
+            // Actualizar dashboard y tablas
+            this.updateDashboard();
+            this.mostrarIngresosMP();
+            this.mostrarVentasMostrador();
+            this.mostrarPagosProveedores();
+            this.mostrarPagosEfectivo();
+            
+            this.updateSyncStatus('✅ Todos los datos borrados', 'success');
+            
+            alert('🎉 RESET COMPLETO\n\nTodos los datos han sido borrados exitosamente.\nEl dashboard está ahora en cero.');
+            
+        } catch (error) {
+            console.error('❌ Error durante el reset:', error);
+            this.updateSyncStatus('Error en reset', 'error');
+            alert('❌ Error durante el reset: ' + error.message);
+        }
+    }
     
     cargarConfiguracionWhatsApp() {
         const config = this.whatsappConfig;

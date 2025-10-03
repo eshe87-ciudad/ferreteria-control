@@ -316,6 +316,70 @@
             transform: translateY(-1px);
         }
 
+        /* Herramientas de gestión */
+        .herramientas {
+            margin: 2rem 0;
+        }
+
+        .herramientas-grid {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-danger, .btn-reset {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+        }
+
+        .btn-danger:hover, .btn-reset:hover {
+            background: linear-gradient(135deg, #c82333, #a71d2a);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+        }
+
+        .btn-danger:active, .btn-reset:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
+        }
+
+        .reset-info {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .reset-info small {
+            color: #dc3545;
+            font-weight: 500;
+            background: rgba(220, 53, 69, 0.1);
+            padding: 8px 12px;
+            border-radius: 6px;
+            border-left: 4px solid #dc3545;
+        }
+
+        @media (max-width: 768px) {
+            .herramientas-grid {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+            }
+            
+            .btn-danger, .btn-reset {
+                width: 100%;
+            }
+        }
+
         .whatsapp-alerts-config {
             border-top: 1px solid rgba(255,255,255,0.2);
             padding-top: 1rem;
@@ -499,6 +563,21 @@
                                 <span id="balance-transferencias-total">$0</span>
                                 <small id="detalle-transferencias-total">Ingresos - Gastos por transferencia</small>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Herramientas de Gestión -->
+            <section class="herramientas">
+                <div class="card">
+                    <h2>🔧 Herramientas de Gestión</h2>
+                    <div class="herramientas-grid">
+                        <button id="btn-reset-todo" class="btn-danger btn-reset">
+                            🗑️ RESETEAR TODO
+                        </button>
+                        <div class="reset-info">
+                            <small>⚠️ Borra TODOS los datos del sistema. Acción irreversible.</small>
                         </div>
                     </div>
                 </div>
