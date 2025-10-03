@@ -380,6 +380,83 @@
             }
         }
 
+        /* Sistema Automático */
+        .sistema-automatico {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .sistema-automatico h3 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .automatico-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        .automatico-info {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+        }
+
+        .automatico-info p {
+            margin: 0.5rem 0;
+            font-size: 0.9rem;
+        }
+
+        .automatico-info ul {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .automatico-info li {
+            margin: 0.3rem 0;
+            font-size: 0.85rem;
+        }
+
+        .automatico-botones {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d, #5a6268);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #5a6268, #495057);
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 768px) {
+            .automatico-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .automatico-botones {
+                flex-direction: row;
+            }
+        }
+
         .whatsapp-alerts-config {
             border-top: 1px solid rgba(255,255,255,0.2);
             padding-top: 1rem;
@@ -578,6 +655,31 @@
                         </button>
                         <div class="reset-info">
                             <small>⚠️ Borra TODOS los datos del sistema. Acción irreversible.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="sistema-automatico">
+                        <h3>🤖 Sistema Automático Diario</h3>
+                        <div class="automatico-grid">
+                            <div class="automatico-info">
+                                <p><strong>⏰ Horario:</strong> Todos los días a las 19:00 hrs</p>
+                                <p><strong>📋 Proceso:</strong></p>
+                                <ul>
+                                    <li>📦 Backup completo de datos</li>
+                                    <li>📊 Informe diario por WhatsApp</li>
+                                    <li>🔄 Reset automático (mantiene balances acumulados)</li>
+                                </ul>
+                                <p id="estado-automatico"><strong>🔴 Estado:</strong> Verificando...</p>
+                                <p id="proxima-ejecucion"><strong>⏭️ Próxima ejecución:</strong> Calculando...</p>
+                            </div>
+                            <div class="automatico-botones">
+                                <button id="btn-probar-automatico" class="btn-secondary">
+                                    🧪 Probar Proceso
+                                </button>
+                                <button id="btn-ver-historial" class="btn-secondary">
+                                    📜 Ver Historial
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

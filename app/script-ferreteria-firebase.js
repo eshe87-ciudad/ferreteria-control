@@ -64,6 +64,7 @@ class ControlFerreteriaFirebase {
         
         this.initializeFirebase();
         this.setupEventListeners();
+        this.iniciarSistemaAutomatico();
         this.startLocalBackup();
     }
 
@@ -602,9 +603,19 @@ class ControlFerreteriaFirebase {
         // Pagos efectivo (siempre en efectivo)
         const totalPagosEfectivo = this.pagosEfectivo.reduce((sum, item) => sum + item.monto, 0);
         
-        // Balances totales por método
-        const balanceEfectivoTotal = (ventasEfectivo) - (pagosProveedoresEfectivo + totalPagosEfectivo);
-        const balanceTransferenciasTotal = (ingresosMP + ventasTransferencia) - (pagosProveedoresTransferencia);
+        // Balances del día
+        const balanceEfectivoDia = (ventasEfectivo) - (pagosProveedoresEfectivo + totalPagosEfectivo);
+        const balanceTransferenciasDia = (ingresosMP + ventasTransferencia) - (pagosProveedoresTransferencia);
+        
+        // Obtener balances acumulados
+        const balancesAcumulados = JSON.parse(localStorage.getItem('balances-acumulados')) || {
+            efectivoTotal: 0,
+            transferenciasTotal: 0
+        };
+        
+        // Balances totales = acumulado + día actual
+        const balanceEfectivoTotal = balancesAcumulados.efectivoTotal + balanceEfectivoDia;
+        const balanceTransferenciasTotal = balancesAcumulados.transferenciasTotal + balanceTransferenciasDia;
 
         // Función para actualizar elementos de forma segura
         const updateElement = (id, value) => {
@@ -627,9 +638,12 @@ class ControlFerreteriaFirebase {
         
         updateElement('total-pagos-efectivo', `$${totalPagosEfectivo.toFixed(2)}`);
         
+        // MOSTRAR BALANCES ACUMULADOS (no solo del día)
         updateElement('balance-efectivo-total', `$${balanceEfectivoTotal.toFixed(2)}`);
+        updateElement('detalle-efectivo-total', `Acumulado: $${balancesAcumulados.efectivoTotal.toFixed(2)} + Hoy: $${balanceEfectivoDia.toFixed(2)}`);
         
         updateElement('balance-transferencias-total', `$${balanceTransferenciasTotal.toFixed(2)}`);
+        updateElement('detalle-transferencias-total', `Acumulado: $${balancesAcumulados.transferenciasTotal.toFixed(2)} + Hoy: $${balanceTransferenciasDia.toFixed(2)}`);
         
         console.log('✅ Dashboard actualizado correctamente');
     }
@@ -817,6 +831,15 @@ class ControlFerreteriaFirebase {
             this.resetearTodosLosDatos();
         });
         
+        // Event listeners para sistema automático
+        document.getElementById('btn-probar-automatico')?.addEventListener('click', () => {
+            this.probarProcesoAutomatico();
+        });
+        
+        document.getElementById('btn-ver-historial')?.addEventListener('click', () => {
+            this.mostrarHistorialBackups();
+        });
+        
         // Event listeners para configuración WhatsApp
         ['twilio-sid', 'twilio-token', 'whatsapp-numero'].forEach(id => {
             document.getElementById(id)?.addEventListener('input', () => {
@@ -832,6 +855,350 @@ class ControlFerreteriaFirebase {
         
         // Cargar configuración WhatsApp
         this.cargarConfiguracionWhatsApp();
+        
+        // Actualizar estado sistema automático
+        setTimeout(() => this.actualizarEstadoSistemaAutomatico(), 1000);
+    }
+
+    // ===== SISTEMA AUTOMÁTICO DIARIO =====
+    
+    iniciarSistemaAutomatico() {
+        console.log('🤖 Iniciando sistema automático diario...');
+        
+        // Verificar si ya se ejecutó hoy
+        const hoy = new Date().toDateString();
+        const ultimaEjecucion = localStorage.getItem('ultima-ejecucion-automatica');
+        
+        if (ultimaEjecucion === hoy) {
+            console.log('✅ Sistema automático ya ejecutado hoy');
+            return;
+        }
+        
+        // Configurar timer para las 19:00
+        this.configurarTimerDiario();
+        
+        // Verificar si es después de las 19:00 y no se ejecutó
+        const ahora = new Date();
+        if (ahora.getHours() >= 19 && ultimaEjecucion !== hoy) {
+            console.log('⏰ Es después de las 19:00 y no se ejecutó hoy');
+            setTimeout(() => this.ejecutarProcesoAutomatico(), 5000); // Ejecutar en 5 segundos
+        }
+    }
+    
+    configurarTimerDiario() {
+        const ahora = new Date();
+        const hora19 = new Date();
+        hora19.setHours(19, 0, 0, 0);
+        
+        // Si ya pasaron las 19:00, programar para mañana
+        if (ahora > hora19) {
+            hora19.setDate(hora19.getDate() + 1);
+        }
+        
+        const tiempoHasta19 = hora19.getTime() - ahora.getTime();
+        
+        console.log(`⏰ Próxima ejecución automática: ${hora19.toLocaleString('es-ES')}`);
+        
+        setTimeout(() => {
+            this.ejecutarProcesoAutomatico();
+            // Programar para el siguiente día
+            setInterval(() => this.ejecutarProcesoAutomatico(), 24 * 60 * 60 * 1000);
+        }, tiempoHasta19);
+    }
+    
+    async ejecutarProcesoAutomatico() {
+        console.log('🚀 Iniciando proceso automático diario...');
+        
+        try {
+            const fecha = new Date().toLocaleDateString('es-ES');
+            this.updateSyncStatus('🤖 Proceso automático iniciado', 'warning');
+            
+            // 1. Crear backup
+            console.log('📦 Creando backup...');
+            const backup = await this.crearBackupCompleto();
+            
+            // 2. Generar y enviar informe por WhatsApp
+            console.log('📊 Generando informe...');
+            await this.enviarInformeDiario(backup);
+            
+            // 3. Guardar balances acumulados
+            console.log('💰 Guardando balances acumulados...');
+            const balancesAcumulados = this.calcularBalancesAcumulados();
+            
+            // 4. Reset selectivo (mantener balances)
+            console.log('🗑️ Realizando reset selectivo...');
+            await this.resetSelectivo();
+            
+            // 5. Restaurar balances acumulados
+            console.log('🔄 Restaurando balances acumulados...');
+            await this.restaurarBalancesAcumulados(balancesAcumulados);
+            
+            // Marcar como ejecutado hoy
+            localStorage.setItem('ultima-ejecucion-automatica', new Date().toDateString());
+            
+            this.updateSyncStatus('✅ Proceso automático completado', 'success');
+            console.log('🎉 Proceso automático completado exitosamente');
+            
+        } catch (error) {
+            console.error('❌ Error en proceso automático:', error);
+            this.updateSyncStatus('❌ Error en proceso automático', 'error');
+        }
+    }
+    
+    async crearBackupCompleto() {
+        const backup = {
+            fecha: new Date().toISOString(),
+            fechaLocal: new Date().toLocaleDateString('es-ES'),
+            horaLocal: new Date().toLocaleTimeString('es-ES'),
+            datos: {
+                ingresosMP: [...this.ingresosMP],
+                ventasMostrador: [...this.ventasMostrador],
+                pagosProveedores: [...this.pagosProveedores],
+                pagosEfectivo: [...this.pagosEfectivo]
+            },
+            resumen: this.generarResumenDiario()
+        };
+        
+        // Guardar backup en Firebase
+        await addDoc(collection(this.db, 'backups'), backup);
+        
+        // Guardar backup local
+        localStorage.setItem(`backup-${backup.fechaLocal}`, JSON.stringify(backup));
+        
+        console.log('✅ Backup creado exitosamente');
+        return backup;
+    }
+    
+    generarResumenDiario() {
+        const totalIngresosMP = this.ingresosMP.reduce((sum, item) => sum + (item.montoNeto || item.monto), 0);
+        const ventasEfectivo = this.ventasMostrador.filter(v => v.metodoPago === 'efectivo').reduce((sum, item) => sum + item.monto, 0);
+        const ventasTransferencia = this.ventasMostrador.filter(v => v.metodoPago === 'transferencia').reduce((sum, item) => sum + item.monto, 0);
+        const totalVentasMostrador = ventasEfectivo + ventasTransferencia;
+        
+        const pagosProveedoresEfectivo = this.pagosProveedores.filter(p => p.metodoPago === 'efectivo').reduce((sum, item) => sum + item.monto, 0);
+        const pagosProveedoresTransferencia = this.pagosProveedores.filter(p => p.metodoPago === 'transferencia').reduce((sum, item) => sum + item.monto, 0);
+        const totalPagosProveedores = pagosProveedoresEfectivo + pagosProveedoresTransferencia;
+        
+        const totalPagosEfectivo = this.pagosEfectivo.reduce((sum, item) => sum + item.monto, 0);
+        
+        return {
+            ingresos: {
+                mercadoPago: totalIngresosMP,
+                ventasEfectivo: ventasEfectivo,
+                ventasTransferencia: ventasTransferencia,
+                totalVentas: totalVentasMostrador,
+                totalIngresos: totalIngresosMP + totalVentasMostrador
+            },
+            egresos: {
+                pagosProveedoresEfectivo: pagosProveedoresEfectivo,
+                pagosProveedoresTransferencia: pagosProveedoresTransferencia,
+                totalPagosProveedores: totalPagosProveedores,
+                pagosEfectivo: totalPagosEfectivo,
+                totalEgresos: totalPagosProveedores + totalPagosEfectivo
+            },
+            balances: {
+                efectivo: (ventasEfectivo) - (pagosProveedoresEfectivo + totalPagosEfectivo),
+                transferencias: (totalIngresosMP + ventasTransferencia) - (pagosProveedoresTransferencia),
+                general: (totalIngresosMP + totalVentasMostrador) - (totalPagosProveedores + totalPagosEfectivo)
+            },
+            contadores: {
+                ingresosMP: this.ingresosMP.length,
+                ventasMostrador: this.ventasMostrador.length,
+                pagosProveedores: this.pagosProveedores.length,
+                pagosEfectivo: this.pagosEfectivo.length
+            }
+        };
+    }
+    
+    async enviarInformeDiario(backup) {
+        if (!this.whatsappConfig.enabled) {
+            console.log('⚠️ WhatsApp no configurado, saltando envío de informe');
+            return;
+        }
+        
+        const resumen = backup.resumen;
+        const fecha = backup.fechaLocal;
+        
+        const mensaje = `📊 *INFORME DIARIO FERRETERÍA*
+🗓️ Fecha: ${fecha}
+
+💰 *INGRESOS DEL DÍA:*
+💳 MercadoPago: $${resumen.ingresos.mercadoPago.toFixed(2)}
+🏪 Ventas Mostrador: $${resumen.ingresos.totalVentas.toFixed(2)}
+  💵 Efectivo: $${resumen.ingresos.ventasEfectivo.toFixed(2)}
+  💳 Transferencia: $${resumen.ingresos.ventasTransferencia.toFixed(2)}
+💎 *TOTAL INGRESOS: $${resumen.ingresos.totalIngresos.toFixed(2)}*
+
+💸 *EGRESOS DEL DÍA:*
+🏢 Pagos Proveedores: $${resumen.egresos.totalPagosProveedores.toFixed(2)}
+  💵 Efectivo: $${resumen.egresos.pagosProveedoresEfectivo.toFixed(2)}
+  💳 Transferencia: $${resumen.egresos.pagosProveedoresTransferencia.toFixed(2)}
+💵 Pagos Efectivo: $${resumen.egresos.pagosEfectivo.toFixed(2)}
+💎 *TOTAL EGRESOS: $${resumen.egresos.totalEgresos.toFixed(2)}*
+
+📈 *BALANCE DEL DÍA:*
+${resumen.balances.general >= 0 ? '🟢' : '🔴'} General: $${resumen.balances.general.toFixed(2)}
+💵 Efectivo: $${resumen.balances.efectivo.toFixed(2)}
+💳 Transferencias: $${resumen.balances.transferencias.toFixed(2)}
+
+📋 *RESUMEN DE OPERACIONES:*
+• ${resumen.contadores.ingresosMP} ingresos MercadoPago
+• ${resumen.contadores.ventasMostrador} ventas mostrador
+• ${resumen.contadores.pagosProveedores} pagos proveedores
+• ${resumen.contadores.pagosEfectivo} pagos efectivo
+
+🤖 *Backup automático realizado*
+🔄 *Sistema reiniciado para nuevo día*
+
+⏰ ${new Date().toLocaleTimeString('es-ES')}`;
+
+        try {
+            await this.enviarTwilioWhatsApp(mensaje);
+            console.log('✅ Informe diario enviado por WhatsApp');
+        } catch (error) {
+            console.error('❌ Error enviando informe diario:', error);
+        }
+    }
+    
+    calcularBalancesAcumulados() {
+        // Obtener balances acumulados existentes
+        const balancesAnteriores = JSON.parse(localStorage.getItem('balances-acumulados')) || {
+            efectivoTotal: 0,
+            transferenciasTotal: 0
+        };
+        
+        // Calcular balances del día
+        const resumen = this.generarResumenDiario();
+        
+        // Sumar al acumulado
+        return {
+            efectivoTotal: balancesAnteriores.efectivoTotal + resumen.balances.efectivo,
+            transferenciasTotal: balancesAnteriores.transferenciasTotal + resumen.balances.transferencias,
+            ultimaActualizacion: new Date().toISOString()
+        };
+    }
+    
+    async resetSelectivo() {
+        // Solo borrar datos del día, mantener estructura para balances
+        const colecciones = ['ingresosMP', 'ventasMostrador', 'pagosProveedores', 'pagosEfectivo'];
+        
+        for (const coleccion of colecciones) {
+            const querySnapshot = await getDocs(collection(this.db, coleccion));
+            const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
+            await Promise.all(deletePromises);
+        }
+        
+        // Limpiar arrays locales
+        this.ingresosMP = [];
+        this.ventasMostrador = [];
+        this.pagosProveedores = [];
+        this.pagosEfectivo = [];
+        
+        console.log('✅ Reset selectivo completado');
+    }
+    
+    async restaurarBalancesAcumulados(balances) {
+        // Guardar balances acumulados
+        localStorage.setItem('balances-acumulados', JSON.stringify(balances));
+        
+        // Actualizar dashboard con balances acumulados
+        this.updateDashboard();
+        
+        // Mostrar en consola
+        console.log('💰 Balances acumulados:', balances);
+        
+        // Actualizar estado en UI
+        this.actualizarEstadoSistemaAutomatico();
+    }
+    
+    async probarProcesoAutomatico() {
+        const confirmacion = confirm('🧪 ¿Ejecutar proceso automático de prueba?\n\nEsto hará:\n• Backup de datos actuales\n• Envío de informe por WhatsApp\n• NO hará reset (solo prueba)\n\n¿Continuar?');
+        
+        if (!confirmacion) return;
+        
+        try {
+            this.updateSyncStatus('🧪 Ejecutando prueba...', 'warning');
+            
+            // Solo backup e informe, sin reset
+            const backup = await this.crearBackupCompleto();
+            await this.enviarInformeDiario(backup);
+            
+            this.updateSyncStatus('✅ Prueba completada', 'success');
+            alert('🎉 Prueba completada exitosamente.\n\nRevisa tu WhatsApp para el informe de prueba.');
+            
+        } catch (error) {
+            console.error('❌ Error en prueba:', error);
+            this.updateSyncStatus('❌ Error en prueba', 'error');
+            alert('❌ Error en prueba: ' + error.message);
+        }
+    }
+    
+    mostrarHistorialBackups() {
+        // Buscar backups en localStorage
+        const backups = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('backup-')) {
+                try {
+                    const backup = JSON.parse(localStorage.getItem(key));
+                    backups.push(backup);
+                } catch (e) {
+                    console.warn('Backup corrupto:', key);
+                }
+            }
+        }
+        
+        if (backups.length === 0) {
+            alert('📜 No hay backups disponibles.\n\nLos backups se crean automáticamente cada día a las 19:00 hrs.');
+            return;
+        }
+        
+        // Ordenar por fecha
+        backups.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        
+        let mensaje = '📜 HISTORIAL DE BACKUPS:\n\n';
+        backups.slice(0, 10).forEach((backup, index) => {
+            mensaje += `${index + 1}. ${backup.fechaLocal} (${backup.horaLocal})\n`;
+            mensaje += `   💰 Ingresos: $${backup.resumen.ingresos.totalIngresos.toFixed(2)}\n`;
+            mensaje += `   💸 Egresos: $${backup.resumen.egresos.totalEgresos.toFixed(2)}\n`;
+            mensaje += `   📊 Balance: $${backup.resumen.balances.general.toFixed(2)}\n\n`;
+        });
+        
+        if (backups.length > 10) {
+            mensaje += `... y ${backups.length - 10} backups más`;
+        }
+        
+        alert(mensaje);
+    }
+    
+    actualizarEstadoSistemaAutomatico() {
+        const estadoElement = document.getElementById('estado-automatico');
+        const proximaElement = document.getElementById('proxima-ejecucion');
+        
+        if (!estadoElement || !proximaElement) return;
+        
+        const ultimaEjecucion = localStorage.getItem('ultima-ejecucion-automatica');
+        const hoy = new Date().toDateString();
+        
+        if (ultimaEjecucion === hoy) {
+            estadoElement.innerHTML = '<strong>🟢 Estado:</strong> Ejecutado hoy';
+        } else {
+            estadoElement.innerHTML = '<strong>🟡 Estado:</strong> Pendiente';
+        }
+        
+        // Calcular próxima ejecución
+        const ahora = new Date();
+        const proxima19 = new Date();
+        proxima19.setHours(19, 0, 0, 0);
+        
+        if (ahora > proxima19) {
+            proxima19.setDate(proxima19.getDate() + 1);
+        }
+        
+        proximaElement.innerHTML = `<strong>⏭️ Próxima ejecución:</strong> ${proxima19.toLocaleDateString('es-ES')} a las 19:00`;
+        
+        // Actualizar cada minuto
+        setTimeout(() => this.actualizarEstadoSistemaAutomatico(), 60000);
     }
 
     // ===== FUNCIONES WHATSAPP =====
