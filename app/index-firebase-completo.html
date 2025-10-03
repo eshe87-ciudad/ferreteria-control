@@ -75,7 +75,7 @@
 
         .reportes-filtros {
             display: grid;
-            grid-template-columns: auto auto 1fr;
+            grid-template-columns: auto auto auto 1fr;
             gap: 1rem;
             align-items: center;
             margin-bottom: 2rem;
@@ -85,7 +85,7 @@
             border: 1px solid #e0e0e0;
         }
 
-        .filtros-periodo, .filtros-fechas {
+        .filtros-periodo, .filtros-fechas, .filtros-metodo {
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
@@ -198,7 +198,74 @@
         .stat-card:nth-child(3) { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); }
         .stat-card:nth-child(4) { background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); }
 
+        /* Estilos para formularios mejorados */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            background: white;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+
+        .form-group select {
+            cursor: pointer;
+        }
+
+        /* Badges para métodos de pago */
+        .metodo-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-left: 0.5rem;
+        }
+
+        .metodo-efectivo {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+
+        .metodo-transferencia {
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #bbdefb;
+        }
+
         @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+            
             .reportes-filtros {
                 grid-template-columns: 1fr;
                 gap: 1rem;
@@ -243,33 +310,49 @@
                         <div class="dashboard-item balance-neto-mp">
                             <div class="dashboard-icon">💳</div>
                             <div class="dashboard-info">
-                                <h3>Balance Neto MP</h3>
+                                <h3>Ingresos Mercado Pago</h3>
                                 <span id="balance-neto-mp">$0</span>
-                                <small id="detalle-mp">MP: $0 - Transferencias: $0</small>
+                                <small id="detalle-mp">💳 Siempre por transferencia</small>
                             </div>
                         </div>
                         <div class="dashboard-item balance-neto-mostrador">
                             <div class="dashboard-icon">🏪</div>
                             <div class="dashboard-info">
-                                <h3>Balance Neto Mostrador</h3>
+                                <h3>Ventas Mostrador</h3>
                                 <span id="balance-neto-mostrador">$0</span>
-                                <small id="detalle-mostrador">Mostrador: $0 - Efectivo: $0</small>
+                                <small id="detalle-mostrador">💵 Efectivo: $0 | 💳 Transferencia: $0</small>
                             </div>
                         </div>
-                        <div class="dashboard-item total-ingresos">
-                            <div class="dashboard-icon">💰</div>
+                        <div class="dashboard-item pagos-proveedores">
+                            <div class="dashboard-icon">�</div>
                             <div class="dashboard-info">
-                                <h3>Ingresos Totales</h3>
-                                <span id="total-ingresos">$0</span>
-                                <small id="contador-ingresos">0 transacciones</small>
+                                <h3>Pagos Proveedores</h3>
+                                <span id="total-pagos-proveedores">$0</span>
+                                <small id="detalle-pagos-proveedores">💵 Efectivo: $0 | 💳 Transferencia: $0</small>
                             </div>
                         </div>
-                        <div class="dashboard-item total-gastos">
-                            <div class="dashboard-icon">💸</div>
+                        <div class="dashboard-item pagos-efectivo">
+                            <div class="dashboard-icon">💵</div>
                             <div class="dashboard-info">
-                                <h3>Gastos Totales</h3>
-                                <span id="total-gastos">$0</span>
-                                <small id="contador-gastos">0 transacciones</small>
+                                <h3>Pagos en Efectivo</h3>
+                                <span id="total-pagos-efectivo">$0</span>
+                                <small id="detalle-pagos-efectivo">💵 Siempre en efectivo</small>
+                            </div>
+                        </div>
+                        <div class="dashboard-item resumen-efectivo">
+                            <div class="dashboard-icon">💵</div>
+                            <div class="dashboard-info">
+                                <h3>Balance Efectivo Total</h3>
+                                <span id="balance-efectivo-total">$0</span>
+                                <small id="detalle-efectivo-total">Ingresos - Gastos en efectivo</small>
+                            </div>
+                        </div>
+                        <div class="dashboard-item resumen-transferencias">
+                            <div class="dashboard-icon">�</div>
+                            <div class="dashboard-info">
+                                <h3>Balance Transferencias Total</h3>
+                                <span id="balance-transferencias-total">$0</span>
+                                <small id="detalle-transferencias-total">Ingresos - Gastos por transferencia</small>
                             </div>
                         </div>
                     </div>
@@ -343,9 +426,18 @@
                                     <label for="mostrador-descripcion">Descripción:</label>
                                     <input type="text" id="mostrador-descripcion" required placeholder="Ej: Venta de tornillos">
                                 </div>
-                                <div class="form-group">
-                                    <label for="mostrador-monto">Monto:</label>
-                                    <input type="number" id="mostrador-monto" step="0.01" required placeholder="0.00">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="mostrador-monto">Monto:</label>
+                                        <input type="number" id="mostrador-monto" step="0.01" required placeholder="0.00">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="mostrador-metodo">Método de Pago:</label>
+                                        <select id="mostrador-metodo" required>
+                                            <option value="efectivo">💵 Efectivo</option>
+                                            <option value="transferencia">💳 Transferencia</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <button type="submit" class="btn-primary">🏪 Agregar Venta</button>
                             </form>
@@ -359,9 +451,18 @@
                                     <label for="proveedor-nombre">Proveedor:</label>
                                     <input type="text" id="proveedor-nombre" required placeholder="Ej: Ferretería Central">
                                 </div>
-                                <div class="form-group">
-                                    <label for="proveedor-monto">Monto:</label>
-                                    <input type="number" id="proveedor-monto" step="0.01" required placeholder="0.00">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="proveedor-monto">Monto:</label>
+                                        <input type="number" id="proveedor-monto" step="0.01" required placeholder="0.00">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="proveedor-metodo">Método de Pago:</label>
+                                        <select id="proveedor-metodo" required>
+                                            <option value="transferencia">💳 Transferencia</option>
+                                            <option value="efectivo">💵 Efectivo</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <button type="submit" class="btn-primary">💸 Agregar Pago</button>
                             </form>
@@ -407,6 +508,23 @@
                             <input type="date" id="reporte-desde">
                             <label for="reporte-hasta">Hasta:</label>
                             <input type="date" id="reporte-hasta">
+                        </div>
+                        <div class="filtros-metodo">
+                            <label for="filtro-metodo-pago">Método de Pago:</label>
+                            <select id="filtro-metodo-pago">
+                                <option value="todos">🔄 Todos los métodos</option>
+                                <option value="efectivo">💵 Solo Efectivo</option>
+                                <option value="transferencia">💳 Solo Transferencias</option>
+                            </select>
+                            <label for="filtro-tipo-transaccion">Tipo de Transacción:</label>
+                            <select id="filtro-tipo-transaccion">
+                                <option value="todos">📊 Todas las transacciones</option>
+                                <option value="ingresos">📈 Solo Ingresos</option>
+                                <option value="gastos">📉 Solo Gastos</option>
+                                <option value="mostrador">🏪 Solo Mostrador</option>
+                                <option value="proveedores">💸 Solo Proveedores</option>
+                                <option value="mercadopago">💳 Solo Mercado Pago</option>
+                            </select>
                         </div>
                         <div class="reportes-acciones">
                             <button id="btn-actualizar-reportes" class="btn-reporte">🔄 Actualizar</button>
@@ -496,11 +614,12 @@
                                             <th>Hora</th>
                                             <th>Descripción</th>
                                             <th>Monto</th>
+                                            <th>Método</th>
                                             <th>Acciones</th>
                                         </tr>
                                     </thead>
                                     <tbody id="lista-ventas-mostrador">
-                                        <tr><td colspan="5" class="sin-datos">No hay ventas registradas</td></tr>
+                                        <tr><td colspan="6" class="sin-datos">No hay ventas registradas</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -516,11 +635,12 @@
                                             <th>Hora</th>
                                             <th>Proveedor</th>
                                             <th>Monto</th>
+                                            <th>Método</th>
                                             <th>Acciones</th>
                                         </tr>
                                     </thead>
                                     <tbody id="lista-pagos-proveedores">
-                                        <tr><td colspan="5" class="sin-datos">No hay pagos registrados</td></tr>
+                                        <tr><td colspan="6" class="sin-datos">No hay pagos registrados</td></tr>
                                     </tbody>
                                 </table>
                             </div>
