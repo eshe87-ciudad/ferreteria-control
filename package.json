@@ -1,0 +1,36 @@
+{
+  "name": "mercadopago-whatsapp-system",
+  "version": "2.0.0",
+  "description": "Sistema completo de notificaciones MercadoPago + WhatsApp con reportes automáticos",
+  "main": "webhook-server.js",
+  "scripts": {
+    "start": "node webhook-server.js",
+    "dev": "nodemon webhook-server.js",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:stop": "pm2 stop all",
+    "pm2:restart": "pm2 restart all",
+    "pm2:logs": "pm2 logs",
+    "pm2:monit": "pm2 monit",
+    "deploy": "pm2 start ecosystem.config.js --env production",
+    "test": "node test-whatsapp-completo.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "node-cron": "^4.2.1",
+    "node-fetch": "^2.6.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "webhook",
+    "mercadopago",
+    "whatsapp",
+    "twilio",
+    "ngrok"
+  ],
+  "author": "Ferretería Control",
+  "license": "MIT"
+}

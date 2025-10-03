@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Ferretería - Alertas WhatsApp</title>
+    <link rel="stylesheet" href="styles-ferreteria.css">
+    
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- jsPDF para exportar reportes a PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        /* Estilos para WhatsApp Alerts */
+        .whatsapp-config {
+            background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+            color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .whatsapp-config h3 {
+            margin: 0 0 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.3rem;
+        }
+
+        .whatsapp-setup {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 1rem;
+            align-items: end;
+            margin-bottom: 1rem;
+        }
+
+        .whatsapp-field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .whatsapp-field label {
+            font-weight: bold;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .whatsapp-field input, .whatsapp-field select {
+            padding: 0.7rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            background: white;
+            color: #333;
+        }
+
+        .btn-whatsapp {
+            background: #ffffff;
+            color: #25d366;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-whatsapp:hover {
+            background: #f0f0f0;
+            transform: translateY(-1px);
+        }
+
+        .btn-whatsapp:disabled {
+            background: #cccccc;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .whatsapp-status {
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            padding: 1rem;
+            text-align: center;
+            font-weight: bold;
+            margin-top: 1rem;
+        }
+
+        .whatsapp-status.connected {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .whatsapp-status.error {
+            background: rgba(220,53,69,0.3);
+        }
+
+        .transfer-alerts {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .transfer-alerts h3 {
+            margin: 0 0 1rem 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .transfer-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .transfer-type {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid #e0e0e0;
+        }
+
+        .transfer-type h4 {
+            margin: 0 0 1rem 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .transfer-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #25d366;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .transfer-config {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .transfer-config label {
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .transfer-config input, .transfer-config select {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .whatsapp-messages {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .message-preview {
+            background: #e8f5e8;
+            border-left: 4px solid #25d366;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .message-preview .whatsapp-header {
+            font-weight: bold;
+            color: #25d366;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .message-preview .whatsapp-body {
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .test-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+
+        .btn-test {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+        }
+
+        .btn-test:hover {
+            background: #0056b3;
+        }
+
+        .service-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .service-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .service-card:hover {
+            border-color: #25d366;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .service-card.selected {
+            border-color: #25d366;
+            background: #f0fff4;
+        }
+
+        .service-card h4 {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+        }
+
+        .service-card p {
+            margin: 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .service-card .price {
+            color: #25d366;
+            font-weight: bold;
+            margin-top: 0.5rem;
+        }
+
+        .stats-whatsapp {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-whatsapp {
+            background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .stat-whatsapp h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        .stat-whatsapp span {
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .api-instructions {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .api-instructions h4 {
+            margin: 0 0 1rem 0;
+            color: #856404;
+        }
+
+        .api-instructions ol {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+
+        .api-instructions code {
+            background: #fff;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 768px) {
+            .whatsapp-setup {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .transfer-types {
+                grid-template-columns: 1fr;
+            }
+            
+            .service-options {
+                grid-template-columns: 1fr;
+            }
+            
+            .test-buttons {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📱 Control Ferretería - Alertas WhatsApp</h1>
+            <p>Notificaciones Instantáneas • Todas las Transferencias • Directo a tu WhatsApp</p>
+        </header>
+
+        <main>
+            <!-- Estadísticas WhatsApp -->
+            <section class="stats-whatsapp">
+                <div class="stat-whatsapp">
+                    <h4>📨 Mensajes Hoy</h4>
+                    <span id="stat-mensajes-hoy">0</span>
+                </div>
+                <div class="stat-whatsapp">
+                    <h4>💰 Transferencias</h4>
+                    <span id="stat-transferencias">0</span>
+                </div>
+                <div class="stat-whatsapp">
+                    <h4>📤 Salidas</h4>
+                    <span id="stat-salidas">0</span>
+                </div>
+                <div class="stat-whatsapp">
+                    <h4>📥 Entradas</h4>
+                    <span id="stat-entradas">0</span>
+                </div>
+            </section>
+
+            <!-- Configuración WhatsApp -->
+            <section class="whatsapp-config">
+                <h3>📱 Configuración Twilio WhatsApp</h3>
+                
+                <div class="whatsapp-setup" style="grid-template-columns: 1fr 1fr;">
+                    <div class="whatsapp-field">
+                        <label>Tu número de WhatsApp:</label>
+                        <input type="tel" id="whatsapp-numero" placeholder="+54 9 11 1234-5678" maxlength="20">
+                    </div>
+                    <div class="whatsapp-field">
+                        <label>Account SID (Twilio):</label>
+                        <input type="text" id="twilio-sid" placeholder="ACxxxxxxxxxxxxxxxxxxxxx" maxlength="50">
+                    </div>
+                </div>
+
+                <div class="whatsapp-setup" style="grid-template-columns: 1fr 1fr auto; margin-bottom: 1rem;">
+                    <div class="whatsapp-field">
+                        <label>Auth Token (Twilio):</label>
+                        <input type="password" id="twilio-token" placeholder="Tu Auth Token" maxlength="50">
+                    </div>
+                    <div class="whatsapp-field">
+                        <label>Twilio Phone:</label>
+                        <input type="tel" id="twilio-phone" placeholder="+14155238886" value="+14155238886" readonly style="background: #f0f0f0;">
+                    </div>
+                    <div class="whatsapp-field">
+                        <button id="btn-configurar-whatsapp" class="btn-whatsapp">🔗 Conectar Twilio</button>
+                    </div>
+                </div>
+
+                <div class="whatsapp-setup" style="grid-template-columns: auto 1fr auto;">
+                    <button id="btn-test-conexion" class="btn-whatsapp" style="background: #007bff;">🧪 Probar</button>
+                    <div></div>
+                    <button id="btn-abrir-twilio" class="btn-whatsapp" style="background: #dc3545;" onclick="window.open('https://console.twilio.com/', '_blank')">🔗 Abrir Twilio Console</button>
+                </div>
+
+                <div id="whatsapp-status" class="whatsapp-status">
+                    📱 Completa tus credenciales Twilio para conectar WhatsApp
+                </div>
+
+                <!-- Instrucciones rápidas -->
+                <div style="background: rgba(255,255,255,0.2); border-radius: 6px; padding: 1rem; margin-top: 1rem; font-size: 0.9rem;">
+                    <strong>🚀 Pasos rápidos:</strong>
+                    <ol style="margin: 0.5rem 0 0 1.5rem;">
+                        <li>Crear cuenta en <strong>twilio.com</strong></li>
+                        <li>Copiar <strong>Account SID</strong> y <strong>Auth Token</strong></li>
+                        <li>En WhatsApp enviar "join [código]" a +1 415 523 8886</li>
+                        <li>Hacer clic en <strong>"Conectar Twilio"</strong></li>
+                    </ol>
+                </div>
+            </section>
+
+            <!-- Instrucciones de API -->
+            <section class="api-instructions">
+                <h4>🔧 Configuración Rápida (Recomendada: Twilio)</h4>
+                <ol>
+                    <li>Registrarte en <code>twilio.com</code> (gratis con $15 de crédito)</li>
+                    <li>Obtener tu <code>Account SID</code> y <code>Auth Token</code></li>
+                    <li>Comprar un número de Twilio (+$1 USD/mes)</li>
+                    <li>Configurar webhook en tu servidor o usar servicios como <code>ngrok</code></li>
+                    <li>¡Listo! Recibirás alertas instantáneas</li>
+                </ol>
+                <p><strong>Costo aproximado:</strong> $2-3 USD/mes para alertas ilimitadas</p>
+            </section>
+
+            <!-- Opciones de Servicio -->
+            <section class="service-options">
+                <div class="service-card" onclick="selectService('twilio')">
+                    <h4>🚀 Twilio (Recomendado)</h4>
+                    <p>Fácil configuración, alta confiabilidad, soporte técnico</p>
+                    <div class="price">~$2-3 USD/mes</div>
+                </div>
+                <div class="service-card" onclick="selectService('whatsapp-business')">
+                    <h4>📱 WhatsApp Business API</h4>
+                    <p>API oficial, requiere verificación de negocio</p>
+                    <div class="price">Gratis/Premium</div>
+                </div>
+                <div class="service-card" onclick="selectService('zapier')">
+                    <h4>⚡ Zapier</h4>
+                    <p>Sin código, configuración visual, múltiples integraciones</p>
+                    <div class="price">$5-10 USD/mes</div>
+                </div>
+                <div class="service-card" onclick="selectService('custom')">
+                    <h4>🛠️ Webhook Personalizado</h4>
+                    <p>Máximo control, requiere desarrollo técnico</p>
+                    <div class="price">Gratis (desarrollo)</div>
+                </div>
+            </section>
+
+            <!-- Configuración MercadoPago (simplificada) -->
+            <div style="background: #e3f2fd; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+                <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 1rem; align-items: center;">
+                    <div>
+                        <input type="password" id="mp-access-token" placeholder="Tu Access Token de MercadoPago" style="width: 100%; padding: 0.5rem;">
+                    </div>
+                    <div>
+                        <select id="mp-environment" style="padding: 0.5rem;">
+                            <option value="sandbox">Sandbox</option>
+                            <option value="production">Producción</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button id="btn-conectar-mp" class="btn-mp" style="background: #007bff; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">🔗 Conectar MP</button>
+                    </div>
+                </div>
+                <div id="mp-status" style="text-align: center; margin-top: 0.5rem; font-weight: bold; color: #666;">
+                    🔴 Conecta MercadoPago para monitorear transferencias
+                </div>
+            </div>
+
+            <!-- Tipos de Transferencias -->
+            <section class="transfer-alerts">
+                <h3>💸 Configurar Alertas de Transferencias</h3>
+                
+                <div class="transfer-types">
+                    <!-- Pagos Recibidos -->
+                    <div class="transfer-type">
+                        <h4>📥 Pagos Recibidos</h4>
+                        <div class="transfer-toggle">
+                            <label class="switch">
+                                <input type="checkbox" id="alert-pagos-recibidos" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <span>Alertar todos los pagos que recibo</span>
+                        </div>
+                        <div class="transfer-config">
+                            <label>Monto mínimo para alertar ($):</label>
+                            <input type="number" id="min-pago-recibido" value="1000" min="0" step="500">
+                            
+                            <label>Incluir información:</label>
+                            <select id="info-pago-recibido">
+                                <option value="basica">Básica (monto + hora)</option>
+                                <option value="detallada" selected>Detallada (monto + método + cliente)</option>
+                                <option value="completa">Completa (todos los datos)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Retiros/Transferencias Salientes -->
+                    <div class="transfer-type">
+                        <h4>📤 Retiros y Transferencias</h4>
+                        <div class="transfer-toggle">
+                            <label class="switch">
+                                <input type="checkbox" id="alert-retiros" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <span>Alertar dinero que sale de mi cuenta</span>
+                        </div>
+                        <div class="transfer-config">
+                            <label>Monto mínimo para alertar ($):</label>
+                            <input type="number" id="min-retiro" value="5000" min="0" step="1000">
+                            
+                            <label>Tipos de salida:</label>
+                            <select id="tipos-retiro">
+                                <option value="todos" selected>Todos los retiros</option>
+                                <option value="transferencias">Solo transferencias</option>
+                                <option value="retiros-banco">Solo retiros a banco</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Pagos Fallidos -->
+                    <div class="transfer-type">
+                        <h4>❌ Pagos Fallidos</h4>
+                        <div class="transfer-toggle">
+                            <label class="switch">
+                                <input type="checkbox" id="alert-pagos-fallidos" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <span>Alertar pagos rechazados o fallidos</span>
+                        </div>
+                        <div class="transfer-config">
+                            <label>Incluir rechazos por:</label>
+                            <select id="motivos-fallos">
+                                <option value="todos" selected>Todos los motivos</option>
+                                <option value="fondos">Solo fondos insuficientes</option>
+                                <option value="tarjeta">Solo problemas de tarjeta</option>
+                                <option value="riesgo">Solo por riesgo/fraude</option>
+                            </select>
+                            
+                            <label>Frecuencia de resumen:</label>
+                            <select id="frecuencia-fallos">
+                                <option value="inmediato" selected>Inmediato (cada fallo)</option>
+                                <option value="cada-5">Cada 5 fallos</option>
+                                <option value="horario">Resumen cada hora</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Reembolsos -->
+                    <div class="transfer-type">
+                        <h4>💸 Reembolsos</h4>
+                        <div class="transfer-toggle">
+                            <label class="switch">
+                                <input type="checkbox" id="alert-reembolsos" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <span>Alertar reembolsos/devoluciones</span>
+                        </div>
+                        <div class="transfer-config">
+                            <label>Monto mínimo ($):</label>
+                            <input type="number" id="min-reembolso" value="1000" min="0" step="500">
+                            
+                            <label>Tipos de reembolso:</label>
+                            <select id="tipos-reembolso">
+                                <option value="todos" selected>Todos los reembolsos</option>
+                                <option value="parciales">Solo parciales</option>
+                                <option value="totales">Solo totales</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Resúmenes Diarios -->
+                    <div class="transfer-type">
+                        <h4>📊 Resúmenes Automáticos</h4>
+                        <div class="transfer-toggle">
+                            <label class="switch">
+                                <input type="checkbox" id="alert-resumenes">
+                                <span class="slider"></span>
+                            </label>
+                            <span>Enviar resúmenes automáticos</span>
+                        </div>
+                        <div class="transfer-config">
+                            <label>Frecuencia:</label>
+                            <select id="frecuencia-resumen">
+                                <option value="cada-3h">Cada 3 horas</option>
+                                <option value="cada-6h">Cada 6 horas</option>
+                                <option value="diario" selected>Diario (19:00)</option>
+                                <option value="semanal">Semanal (domingos)</option>
+                            </select>
+                            
+                            <label>Incluir en resumen:</label>
+                            <select id="contenido-resumen">
+                                <option value="basico">Básico (totales)</option>
+                                <option value="detallado" selected>Detallado (+ métodos)</option>
+                                <option value="completo">Completo (+ gráficos)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Actividad Sospechosa -->
+                    <div class="transfer-type">
+                        <h4>🔍 Actividad Sospechosa</h4>
+                        <div class="transfer-toggle">
+                            <label class="switch">
+                                <input type="checkbox" id="alert-sospechosa">
+                                <span class="slider"></span>
+                            </label>
+                            <span>Detectar patrones anormales</span>
+                        </div>
+                        <div class="transfer-config">
+                            <label>Sensibilidad:</label>
+                            <select id="sensibilidad-sospechosa">
+                                <option value="baja">Baja (solo muy anormal)</option>
+                                <option value="media" selected>Media (cambios significativos)</option>
+                                <option value="alta">Alta (cualquier cambio)</option>
+                            </select>
+                            
+                            <label>Alertar si:</label>
+                            <select id="criterios-sospechosa">
+                                <option value="monto-alto">Monto muy alto</option>
+                                <option value="frecuencia">Frecuencia inusual</option>
+                                <option value="horario">Horario extraño</option>
+                                <option value="todos" selected>Cualquier patrón raro</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Vista previa de mensajes -->
+            <section class="whatsapp-messages">
+                <h3>📱 Vista Previa de Mensajes WhatsApp</h3>
+                
+                <div class="message-preview">
+                    <div class="whatsapp-header">
+                        🏪 Ferretería Control
+                    </div>
+                    <div class="whatsapp-body">
+                        💰 *PAGO RECIBIDO*<br>
+                        Monto: $45,750<br>
+                        Método: Tarjeta de crédito<br>
+                        Hora: 14:23<br>
+                        Cliente: Juan P.**<br>
+                        <br>
+                        💳 Balance actual: $523,450
+                    </div>
+                </div>
+
+                <div class="message-preview">
+                    <div class="whatsapp-header">
+                        🏪 Ferretería Control
+                    </div>
+                    <div class="whatsapp-body">
+                        📤 *RETIRO PROCESADO*<br>
+                        Monto: $100,000<br>
+                        Destino: Banco Santander<br>
+                        Hora: 16:45<br>
+                        <br>
+                        💳 Balance actual: $423,450
+                    </div>
+                </div>
+
+                <div class="message-preview">
+                    <div class="whatsapp-header">
+                        🏪 Ferretería Control
+                    </div>
+                    <div class="whatsapp-body">
+                        📊 *RESUMEN DIARIO*<br>
+                        Fecha: 02/10/2025<br>
+                        <br>
+                        📥 Ingresos: $245,750 (12 pagos)<br>
+                        📤 Salidas: $45,000 (2 retiros)<br>
+                        💰 Neto: +$200,750<br>
+                        <br>
+                        🎯 Meta diaria: 75% completada
+                    </div>
+                </div>
+
+                <div class="test-buttons">
+                    <button id="btn-test-pago" class="btn-test">🧪 Probar Pago</button>
+                    <button id="btn-test-retiro" class="btn-test">🧪 Probar Retiro</button>
+                    <button id="btn-test-resumen" class="btn-test">🧪 Probar Resumen</button>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="info-guardado">
+                <p><strong>📱 Estado WhatsApp:</strong> <span id="estado-whatsapp">No configurado</span></p>
+                <p><strong>📊 Tecnología:</strong> WhatsApp Business API + MercadoPago + Webhooks</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Variables globales
+        let mpConectado = false;
+        let whatsappConfigurado = false;
+        let accessToken = '';
+        let numeroWhatsApp = '';
+        let servicioWhatsApp = 'twilio';
+        let alertasConfig = {};
+        
+        // Estadísticas
+        let mensajesHoy = 0;
+        let transferenciasHoy = 0;
+        let salidasHoy = 0;
+        let entradasHoy = 0;
+
+        // Datos de MercadoPago
+        let pagosMercadoPago = [];
+        let ultimaVerificacion = new Date();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            cargarConfiguracion();
+            actualizarEstadisticas();
+        });
+
+        function setupEventListeners() {
+            // MercadoPago
+            document.getElementById('btn-conectar-mp').addEventListener('click', conectarMercadoPago);
+            
+            // WhatsApp
+            document.getElementById('btn-configurar-whatsapp').addEventListener('click', configurarWhatsApp);
+            document.getElementById('btn-test-conexion').addEventListener('click', probarConexionWhatsApp);
+            
+            // Tests
+            document.getElementById('btn-test-pago').addEventListener('click', () => enviarMensajePrueba('pago'));
+            document.getElementById('btn-test-retiro').addEventListener('click', () => enviarMensajePrueba('retiro'));
+            document.getElementById('btn-test-resumen').addEventListener('click', () => enviarMensajePrueba('resumen'));
+            
+            // Guardar configuración automáticamente
+            document.querySelectorAll('input, select').forEach(input => {
+                input.addEventListener('change', guardarConfiguracion);
+            });
+        }
+
+        async function conectarMercadoPago() {
+            const token = document.getElementById('mp-access-token').value.trim();
+            const env = document.getElementById('mp-environment').value;
+
+            if (!token) {
+                mostrarNotificacion('❌ Ingresa tu Access Token de MercadoPago', 'danger');
+                return;
+            }
+
+            accessToken = token;
+            
+            actualizarEstadoMP('connecting', '🔄 Conectando a MercadoPago...');
+
+            try {
+                const response = await fetch('https://api.mercadopago.com/v1/payments/search?sort=date_created&criteria=desc&limit=1', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    mpConectado = true;
+                    actualizarEstadoMP('online', '✅ MercadoPago conectado - Monitoreando transferencias');
+                    
+                    // Iniciar monitoreo
+                    iniciarMonitoreoTransferencias();
+                    
+                    mostrarNotificacion('🎉 MercadoPago conectado - Listo para WhatsApp', 'success');
+                    
+                } else {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+
+            } catch (error) {
+                console.error('Error conectando MercadoPago:', error);
+                actualizarEstadoMP('error', '❌ Error conectando: ' + error.message);
+                mostrarNotificacion('❌ Error de conexión: ' + error.message, 'danger');
+            }
+        }
+
+        async function configurarWhatsApp() {
+            const numero = document.getElementById('whatsapp-numero').value.trim();
+            const twilioSid = document.getElementById('twilio-sid').value.trim();
+            const twilioToken = document.getElementById('twilio-token').value.trim();
+            const twilioPhone = document.getElementById('twilio-phone').value.trim();
+
+            // Validar campos requeridos
+            if (!numero) {
+                mostrarNotificacion('📱 Ingresa tu número de WhatsApp', 'warning');
+                return;
+            }
+
+            if (!twilioSid || !twilioToken) {
+                mostrarNotificacion('🔑 Ingresa tus credenciales Twilio (SID y Token)', 'warning');
+                return;
+            }
+
+            // Validar formato de número
+            const numeroLimpio = numero.replace(/[^\d+]/g, '');
+            if (!numeroLimpio.startsWith('+') || numeroLimpio.length < 10) {
+                mostrarNotificacion('📱 Formato inválido. Usa: +54 9 11 1234-5678', 'warning');
+                return;
+            }
+
+            // Validar SID format (empieza con AC)
+            if (!twilioSid.startsWith('AC')) {
+                mostrarNotificacion('🔑 Account SID debe empezar con "AC"', 'warning');
+                return;
+            }
+
+            actualizarEstadoWhatsApp('connecting', '🔄 Verificando credenciales Twilio...');
+
+            try {
+                // Verificar credenciales Twilio
+                const verificado = await verificarTwilio(twilioSid, twilioToken);
+                
+                if (verificado) {
+                    // Guardar configuración
+                    numeroWhatsApp = numeroLimpio;
+                    alertasConfig.twilioSid = twilioSid;
+                    alertasConfig.twilioToken = twilioToken;
+                    alertasConfig.twilioPhone = twilioPhone;
+                    whatsappConfigurado = true;
+                    
+                    guardarConfiguracion();
+                    
+                    actualizarEstadoWhatsApp('connected', '✅ Twilio conectado - WhatsApp listo para alertas');
+                    mostrarNotificacion('🎉 Twilio WhatsApp configurado correctamente', 'success');
+                    
+                    // Si MP ya está conectado, iniciar monitoreo completo
+                    if (mpConectado) {
+                        iniciarMonitoreoTransferencias();
+                    }
+                } else {
+                    actualizarEstadoWhatsApp('error', '❌ Credenciales Twilio inválidas');
+                    mostrarNotificacion('❌ Verifica tus credenciales Twilio', 'danger');
+                }
+            } catch (error) {
+                console.error('Error verificando Twilio:', error);
+                actualizarEstadoWhatsApp('error', '❌ Error conectando Twilio: ' + error.message);
+                mostrarNotificacion('❌ Error: ' + error.message, 'danger');
+            }
+        }
+
+        async function verificarTwilio(accountSid, authToken) {
+            const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}.json`;
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Basic ' + btoa(accountSid + ':' + authToken)
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ Twilio verificado:', data.friendly_name);
+                    return true;
+                } else {
+                    console.error('❌ Error Twilio:', response.status, response.statusText);
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ Error verificando Twilio:', error);
+                return false;
+            }
+        }
+
+        function selectService(servicio) {
+            // Remover selección previa
+            document.querySelectorAll('.service-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Seleccionar nuevo servicio
+            event.target.closest('.service-card').classList.add('selected');
+            document.getElementById('whatsapp-service').value = servicio;
+            
+            servicioWhatsApp = servicio;
+            guardarConfiguracion();
+        }
+
+        async function iniciarMonitoreoTransferencias() {
+            if (!mpConectado || !whatsappConfigurado) return;
+
+            // Cargar datos iniciales
+            await cargarTransferencias();
+            
+            // Monitoreo cada 30 segundos
+            setInterval(verificarNuevasTransferencias, 30000);
+            
+            // Resúmenes programados
+            programarResumenes();
+            
+            mostrarNotificacion('🚀 Monitoreo de transferencias iniciado', 'success');
+        }
+
+        async function cargarTransferencias() {
+            if (!mpConectado) return;
+
+            try {
+                const ahora = new Date();
+                const hace24h = new Date(ahora.getTime() - 24 * 60 * 60 * 1000);
+                
+                const url = `https://api.mercadopago.com/v1/payments/search?sort=date_created&criteria=desc&limit=50&begin_date=${hace24h.toISOString()}&end_date=${ahora.toISOString()}`;
+
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    pagosMercadoPago = data.results || [];
+                    actualizarEstadisticas();
+                }
+
+            } catch (error) {
+                console.error('Error cargando transferencias:', error);
+            }
+        }
+
+        async function verificarNuevasTransferencias() {
+            if (!mpConectado || !whatsappConfigurado) return;
+
+            try {
+                const ahora = new Date();
+                const url = `https://api.mercadopago.com/v1/payments/search?sort=date_created&criteria=desc&limit=10&begin_date=${ultimaVerificacion.toISOString()}&end_date=${ahora.toISOString()}`;
+
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const transferenciasNuevas = data.results || [];
+                    
+                    // Procesar cada transferencia nueva
+                    transferenciasNuevas.forEach(transferencia => {
+                        const fechaTransferencia = new Date(transferencia.date_created);
+                        if (fechaTransferencia > ultimaVerificacion) {
+                            procesarTransferencia(transferencia);
+                        }
+                    });
+                    
+                    ultimaVerificacion = ahora;
+                    pagosMercadoPago = [...transferenciasNuevas, ...pagosMercadoPago];
+                    actualizarEstadisticas();
+                }
+
+            } catch (error) {
+                console.error('Error verificando transferencias:', error);
+            }
+        }
+
+        function procesarTransferencia(transferencia) {
+            const config = alertasConfig;
+            
+            // Pagos recibidos (aprobados)
+            if (transferencia.status === 'approved' && config.alertaPagosRecibidos) {
+                if (transferencia.transaction_amount >= config.minPagoRecibido) {
+                    enviarAlertaWhatsApp('pago-recibido', transferencia);
+                    entradasHoy++;
+                }
+            }
+            
+            // Pagos fallidos
+            if ((transferencia.status === 'rejected' || transferencia.status === 'cancelled') && config.alertaPagosFallidos) {
+                enviarAlertaWhatsApp('pago-fallido', transferencia);
+            }
+            
+            // Detectar actividad sospechosa
+            if (config.alertaSospechosa) {
+                verificarActividadSospechosa(transferencia);
+            }
+            
+            transferenciasHoy++;
+            mensajesHoy++;
+        }
+
+        async function enviarAlertaWhatsApp(tipo, transferencia) {
+            if (!whatsappConfigurado) {
+                console.log('❌ WhatsApp no configurado');
+                return false;
+            }
+
+            const mensaje = generarMensajeWhatsApp(tipo, transferencia);
+            
+            try {
+                const exito = await enviarTwilioWhatsApp(mensaje, numeroWhatsApp);
+                
+                if (exito) {
+                    mostrarNotificacion(`📱 Enviado a WhatsApp: ${tipo}`, 'success');
+                    mensajesHoy++;
+                    actualizarEstadisticas();
+                    return true;
+                } else {
+                    mostrarNotificacion(`❌ Error enviando WhatsApp: ${tipo}`, 'danger');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error enviando WhatsApp:', error);
+                mostrarNotificacion(`❌ Error WhatsApp: ${error.message}`, 'danger');
+                return false;
+            }
+        }
+
+        async function enviarTwilioWhatsApp(mensaje, numeroDestino) {
+            const accountSid = alertasConfig.twilioSid || '';
+            const authToken = alertasConfig.twilioToken || '';
+            const twilioPhone = alertasConfig.twilioPhone || '+14155238886';
+
+            if (!accountSid || !authToken) {
+                throw new Error('Credenciales Twilio faltantes');
+            }
+
+            const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+            
+            const formData = new URLSearchParams({
+                'From': `whatsapp:${twilioPhone}`,
+                'To': `whatsapp:${numeroDestino}`,
+                'Body': mensaje
+            });
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Basic ' + btoa(accountSid + ':' + authToken),
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ Twilio WhatsApp enviado:', result.sid);
+                    return true;
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.message || `HTTP ${response.status}`);
+                }
+            } catch (error) {
+                console.error('❌ Error Twilio:', error);
+                throw error;
+            }
+        }
+
+        function generarMensajeWhatsApp(tipo, transferencia) {
+            const fecha = new Date().toLocaleTimeString('es-ES', { hour12: false });
+            
+            switch (tipo) {
+                case 'pago-recibido':
+                    return `🏪 *Ferretería Control*\n\n💰 *PAGO RECIBIDO*\nMonto: $${transferencia.transaction_amount.toLocaleString()}\nMétodo: ${transferencia.payment_method_id || 'No especificado'}\nHora: ${fecha}\nCliente: ${transferencia.payer?.first_name || 'N/A'}**\n\n💳 Balance actualizado`;
+                
+                case 'pago-fallido':
+                    return `🏪 *Ferretería Control*\n\n❌ *PAGO FALLIDO*\nMonto: $${transferencia.transaction_amount.toLocaleString()}\nMotivo: ${transferencia.status_detail || 'No especificado'}\nHora: ${fecha}\n\n⚠️ Revisar con cliente`;
+                
+                case 'retiro':
+                    return `🏪 *Ferretería Control*\n\n📤 *RETIRO PROCESADO*\nMonto: $${transferencia.transaction_amount.toLocaleString()}\nDestino: ${transferencia.description || 'No especificado'}\nHora: ${fecha}\n\n💳 Balance actualizado`;
+                
+                case 'resumen':
+                    const totalIngresos = pagosMercadoPago.filter(p => p.status === 'approved' && isToday(p.date_created)).reduce((sum, p) => sum + p.transaction_amount, 0);
+                    const cantidadPagos = pagosMercadoPago.filter(p => p.status === 'approved' && isToday(p.date_created)).length;
+                    
+                    return `🏪 *Ferretería Control*\n\n📊 *RESUMEN DIARIO*\nFecha: ${new Date().toLocaleDateString('es-ES')}\n\n📥 Ingresos: $${totalIngresos.toLocaleString()} (${cantidadPagos} pagos)\n📤 Salidas: $${salidasHoy.toLocaleString()}\n💰 Neto: +$${(totalIngresos - salidasHoy).toLocaleString()}\n\n🎯 Día productivo!`;
+                
+                default:
+                    return `🏪 Ferretería Control - Alerta de transferencia`;
+            }
+        }
+
+        async function enviarMensajePrueba(tipo) {
+            if (!whatsappConfigurado) {
+                mostrarNotificacion('📱 Primero configura Twilio WhatsApp', 'warning');
+                return;
+            }
+            
+            const transferenciaPrueba = {
+                transaction_amount: 45750,
+                payment_method_id: 'credit_card',
+                status: 'approved',
+                status_detail: 'accredited',
+                payer: { first_name: 'Juan' },
+                description: 'Venta de herramientas'
+            };
+            
+            mostrarNotificacion(`🧪 Enviando mensaje de prueba: ${tipo}...`, 'success');
+            await enviarAlertaWhatsApp(tipo, transferenciaPrueba);
+        }
+
+        async function probarConexionWhatsApp() {
+            const numero = document.getElementById('whatsapp-numero').value.trim();
+            const twilioSid = document.getElementById('twilio-sid').value.trim();
+            const twilioToken = document.getElementById('twilio-token').value.trim();
+
+            if (!numero || !twilioSid || !twilioToken) {
+                mostrarNotificacion('📱 Completa todos los campos para probar', 'warning');
+                return;
+            }
+
+            const numeroLimpio = numero.replace(/[^\d+]/g, '');
+            
+            try {
+                mostrarNotificacion('🧪 Enviando mensaje de prueba...', 'success');
+                
+                const mensaje = `🧪 *PRUEBA FERRETERÍA CONTROL*\n\nHola! Este es un mensaje de prueba.\n\nSi recibes esto, tu integración con Twilio WhatsApp está funcionando perfectamente!\n\n✅ Configuración exitosa\n📱 ${numeroLimpio}\n⏰ ${new Date().toLocaleTimeString('es-ES')}`;
+                
+                const exito = await enviarTwilioWhatsApp(mensaje, numeroLimpio);
+                
+                if (exito) {
+                    mostrarNotificacion('🎉 ¡Mensaje de prueba enviado! Revisa tu WhatsApp', 'success');
+                } else {
+                    mostrarNotificacion('❌ Error enviando mensaje de prueba', 'danger');
+                }
+            } catch (error) {
+                console.error('Error en prueba:', error);
+                mostrarNotificacion('❌ Error: ' + error.message, 'danger');
+            }
+        }
+
+        function verificarActividadSospechosa(transferencia) {
+            // Implementar lógica de detección
+            const promedio = calcularPromedioTransferencias();
+            const desviacion = Math.abs(transferencia.transaction_amount - promedio) / promedio;
+            
+            if (desviacion > 2.0) { // 200% diferente
+                enviarAlertaWhatsApp('actividad-sospechosa', transferencia);
+            }
+        }
+
+        function calcularPromedioTransferencias() {
+            const pagosRecientes = pagosMercadoPago.slice(0, 20);
+            const total = pagosRecientes.reduce((sum, p) => sum + p.transaction_amount, 0);
+            return total / Math.max(pagosRecientes.length, 1);
+        }
+
+        function programarResumenes() {
+            const config = alertasConfig;
+            if (!config.alertaResumenes) return;
+            
+            let intervalo = 24 * 60 * 60 * 1000; // Diario por defecto
+            
+            switch (config.frecuenciaResumen) {
+                case 'cada-3h': intervalo = 3 * 60 * 60 * 1000; break;
+                case 'cada-6h': intervalo = 6 * 60 * 60 * 1000; break;
+                case 'diario': intervalo = 24 * 60 * 60 * 1000; break;
+                case 'semanal': intervalo = 7 * 24 * 60 * 60 * 1000; break;
+            }
+            
+            setInterval(() => {
+                enviarAlertaWhatsApp('resumen', {});
+            }, intervalo);
+        }
+
+        function actualizarEstadisticas() {
+            document.getElementById('stat-mensajes-hoy').textContent = mensajesHoy.toString();
+            document.getElementById('stat-transferencias').textContent = transferenciasHoy.toString();
+            document.getElementById('stat-salidas').textContent = salidasHoy.toString();
+            document.getElementById('stat-entradas').textContent = entradasHoy.toString();
+        }
+
+        function actualizarEstadoMP(estado, mensaje) {
+            const statusElement = document.getElementById('mp-status');
+            statusElement.textContent = mensaje;
+            
+            if (estado === 'online') {
+                statusElement.style.color = '#28a745';
+            } else if (estado === 'error') {
+                statusElement.style.color = '#dc3545';
+            } else {
+                statusElement.style.color = '#666';
+            }
+        }
+
+        function actualizarEstadoWhatsApp(estado, mensaje) {
+            const statusElement = document.getElementById('whatsapp-status');
+            const estadoElement = document.getElementById('estado-whatsapp');
+            
+            statusElement.textContent = mensaje;
+            statusElement.className = `whatsapp-status ${estado}`;
+            estadoElement.textContent = mensaje.replace(/[🔄✅❌📱]/g, '').trim();
+        }
+
+        function guardarConfiguracion() {
+            alertasConfig = {
+                // Pagos recibidos
+                alertaPagosRecibidos: document.getElementById('alert-pagos-recibidos').checked,
+                minPagoRecibido: parseInt(document.getElementById('min-pago-recibido').value) || 1000,
+                infoPagoRecibido: document.getElementById('info-pago-recibido').value,
+                
+                // Retiros
+                alertaRetiros: document.getElementById('alert-retiros').checked,
+                minRetiro: parseInt(document.getElementById('min-retiro').value) || 5000,
+                tiposRetiro: document.getElementById('tipos-retiro').value,
+                
+                // Pagos fallidos
+                alertaPagosFallidos: document.getElementById('alert-pagos-fallidos').checked,
+                motivosFallos: document.getElementById('motivos-fallos').value,
+                frecuenciaFallos: document.getElementById('frecuencia-fallos').value,
+                
+                // Reembolsos
+                alertaReembolsos: document.getElementById('alert-reembolsos').checked,
+                minReembolso: parseInt(document.getElementById('min-reembolso').value) || 1000,
+                tiposReembolso: document.getElementById('tipos-reembolso').value,
+                
+                // Resúmenes
+                alertaResumenes: document.getElementById('alert-resumenes').checked,
+                frecuenciaResumen: document.getElementById('frecuencia-resumen').value,
+                contenidoResumen: document.getElementById('contenido-resumen').value,
+                
+                // Actividad sospechosa
+                alertaSospechosa: document.getElementById('alert-sospechosa').checked,
+                sensibilidadSospechosa: document.getElementById('sensibilidad-sospechosa').value,
+                criteriosSospechosa: document.getElementById('criterios-sospechosa').value,
+                
+                // WhatsApp
+                numeroWhatsApp: numeroWhatsApp,
+                servicioWhatsApp: servicioWhatsApp,
+                
+                // Twilio
+                twilioSid: alertasConfig.twilioSid || '',
+                twilioToken: alertasConfig.twilioToken || '',
+                twilioPhone: alertasConfig.twilioPhone || '+14155238886'
+            };
+
+            localStorage.setItem('whatsappAlertsConfig', JSON.stringify(alertasConfig));
+        }
+
+        function cargarConfiguracion() {
+            const configGuardada = localStorage.getItem('whatsappAlertsConfig');
+            if (configGuardada) {
+                alertasConfig = JSON.parse(configGuardada);
+                
+                // Aplicar configuración guardada
+                document.getElementById('alert-pagos-recibidos').checked = alertasConfig.alertaPagosRecibidos !== false;
+                document.getElementById('min-pago-recibido').value = alertasConfig.minPagoRecibido || 1000;
+                document.getElementById('info-pago-recibido').value = alertasConfig.infoPagoRecibido || 'detallada';
+                
+                document.getElementById('alert-retiros').checked = alertasConfig.alertaRetiros !== false;
+                document.getElementById('min-retiro').value = alertasConfig.minRetiro || 5000;
+                document.getElementById('tipos-retiro').value = alertasConfig.tiposRetiro || 'todos';
+                
+                document.getElementById('alert-pagos-fallidos').checked = alertasConfig.alertaPagosFallidos !== false;
+                document.getElementById('motivos-fallos').value = alertasConfig.motivosFallos || 'todos';
+                document.getElementById('frecuencia-fallos').value = alertasConfig.frecuenciaFallos || 'inmediato';
+                
+                document.getElementById('alert-reembolsos').checked = alertasConfig.alertaReembolsos !== false;
+                document.getElementById('min-reembolso').value = alertasConfig.minReembolso || 1000;
+                document.getElementById('tipos-reembolso').value = alertasConfig.tiposReembolso || 'todos';
+                
+                document.getElementById('alert-resumenes').checked = alertasConfig.alertaResumenes || false;
+                document.getElementById('frecuencia-resumen').value = alertasConfig.frecuenciaResumen || 'diario';
+                document.getElementById('contenido-resumen').value = alertasConfig.contenidoResumen || 'detallado';
+                
+                document.getElementById('alert-sospechosa').checked = alertasConfig.alertaSospechosa || false;
+                document.getElementById('sensibilidad-sospechosa').value = alertasConfig.sensibilidadSospechosa || 'media';
+                document.getElementById('criterios-sospechosa').value = alertasConfig.criteriosSospechosa || 'todos';
+                
+                if (alertasConfig.numeroWhatsApp) {
+                    document.getElementById('whatsapp-numero').value = alertasConfig.numeroWhatsApp;
+                    numeroWhatsApp = alertasConfig.numeroWhatsApp;
+                }
+                
+                if (alertasConfig.twilioSid) {
+                    document.getElementById('twilio-sid').value = alertasConfig.twilioSid;
+                }
+                
+                if (alertasConfig.twilioToken) {
+                    document.getElementById('twilio-token').value = alertasConfig.twilioToken;
+                }
+                
+                if (alertasConfig.twilioPhone) {
+                    document.getElementById('twilio-phone').value = alertasConfig.twilioPhone;
+                }
+                
+                // Si todos los datos están configurados, marcar como conectado
+                if (alertasConfig.numeroWhatsApp && alertasConfig.twilioSid && alertasConfig.twilioToken) {
+                    whatsappConfigurado = true;
+                    actualizarEstadoWhatsApp('connected', '✅ Twilio WhatsApp configurado desde sesión anterior');
+                }
+                
+                if (alertasConfig.servicioWhatsApp) {
+                    servicioWhatsApp = alertasConfig.servicioWhatsApp;
+                }
+            }
+        }
+
+        function isToday(fecha) {
+            const hoy = new Date().toDateString();
+            return new Date(fecha).toDateString() === hoy;
+        }
+
+        function mostrarNotificacion(mensaje, tipo = 'success') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${tipo === 'success' ? '#4CAF50' : tipo === 'warning' ? '#ffc107' : '#dc3545'};
+                color: ${tipo === 'warning' ? '#333' : 'white'};
+                padding: 1rem;
+                border-radius: 4px;
+                z-index: 1000;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                max-width: 300px;
+            `;
+            notification.textContent = mensaje;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 4000);
+        }
+    </script>
+</body>
+</html>

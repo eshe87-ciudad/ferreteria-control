@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Ferretería - Webhooks MercadoPago</title>
+    <link rel="stylesheet" href="styles-ferreteria.css">
+    
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- jsPDF para exportar reportes a PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        /* Estilos para Webhooks */
+        .webhook-config {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .webhook-config h3 {
+            margin: 0 0 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.3rem;
+        }
+
+        .webhook-setup {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 1rem;
+            align-items: end;
+            margin-bottom: 1rem;
+        }
+
+        .webhook-field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .webhook-field label {
+            font-weight: bold;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .webhook-field input, .webhook-field select {
+            padding: 0.7rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            background: white;
+            color: #333;
+        }
+
+        .btn-webhook {
+            background: #ffffff;
+            color: #667eea;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-webhook:hover {
+            background: #f0f0f0;
+            transform: translateY(-1px);
+        }
+
+        .btn-webhook:disabled {
+            background: #cccccc;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .webhook-status {
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            padding: 1rem;
+            text-align: center;
+            font-weight: bold;
+            margin-top: 1rem;
+        }
+
+        .webhook-status.connected {
+            background: rgba(40,167,69,0.3);
+        }
+
+        .webhook-status.error {
+            background: rgba(220,53,69,0.3);
+        }
+
+        .webhook-methods {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .webhook-method {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .webhook-method:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .webhook-method.selected {
+            border-color: #667eea;
+            background: #f8f9fa;
+        }
+
+        .webhook-method.recommended {
+            border-color: #28a745;
+            background: #f0fff4;
+        }
+
+        .webhook-method.recommended::before {
+            content: "🌟 RECOMENDADO";
+            background: #28a745;
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            float: right;
+        }
+
+        .method-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .method-icon {
+            font-size: 2.5rem;
+        }
+
+        .method-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+            margin: 0;
+        }
+
+        .method-subtitle {
+            color: #666;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .method-details {
+            margin-bottom: 1rem;
+        }
+
+        .method-details h4 {
+            color: #667eea;
+            margin: 0 0 0.5rem 0;
+            font-size: 1rem;
+        }
+
+        .method-details ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .method-details li {
+            padding: 0.2rem 0;
+            color: #555;
+            position: relative;
+            padding-left: 1.2rem;
+        }
+
+        .method-details li::before {
+            content: "✅";
+            position: absolute;
+            left: 0;
+            font-size: 0.8rem;
+        }
+
+        .method-difficulty {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .difficulty-stars {
+            color: #ffc107;
+        }
+
+        .setup-instructions {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            display: none;
+        }
+
+        .setup-instructions.active {
+            display: block;
+            border-color: #667eea;
+        }
+
+        .setup-instructions h3 {
+            color: #667eea;
+            margin: 0 0 1.5rem 0;
+        }
+
+        .instruction-step {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .instruction-step h4 {
+            color: #333;
+            margin: 0 0 1rem 0;
+        }
+
+        .instruction-step p, .instruction-step li {
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 0.5rem;
+        }
+
+        .code-snippet {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            font-size: 0.85rem;
+        }
+
+        .code-snippet .comment {
+            color: #6A9955;
+        }
+
+        .code-snippet .string {
+            color: #ce9178;
+        }
+
+        .code-snippet .keyword {
+            color: #569cd6;
+        }
+
+        .webhook-simulator {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .webhook-simulator h4 {
+            color: #1976d2;
+            margin: 0 0 1rem 0;
+        }
+
+        .simulator-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .simulator-button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+        }
+
+        .simulator-button:hover {
+            background: #1565c0;
+        }
+
+        .webhook-logs {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.8rem;
+            margin-top: 1rem;
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.3rem;
+            border-radius: 3px;
+        }
+
+        .log-entry.info {
+            background: #e3f2fd;
+            border-left: 3px solid #2196f3;
+        }
+
+        .log-entry.success {
+            background: #e8f5e9;
+            border-left: 3px solid #4caf50;
+        }
+
+        .log-entry.error {
+            background: #ffebee;
+            border-left: 3px solid #f44336;
+        }
+
+        .real-time-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-webhook {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .stat-webhook h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        .stat-webhook span {
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+        }
+
+        .success-box {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .webhook-setup {
+                grid-template-columns: 1fr;
+            }
+            
+            .webhook-methods {
+                grid-template-columns: 1fr;
+            }
+            
+            .simulator-controls {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ Control Ferretería - Webhooks MercadoPago</h1>
+            <p>Notificaciones Instantáneas • Tiempo Real • Máxima Eficiencia</p>
+        </header>
+
+        <main>
+            <!-- Estadísticas en tiempo real -->
+            <section class="real-time-stats">
+                <div class="stat-webhook">
+                    <h4>⚡ Webhooks Hoy</h4>
+                    <span id="stat-webhooks-hoy">0</span>
+                </div>
+                <div class="stat-webhook">
+                    <h4>🕐 Última Notificación</h4>
+                    <span id="stat-ultima-notif">--:--</span>
+                </div>
+                <div class="stat-webhook">
+                    <h4>📊 Tiempo Promedio</h4>
+                    <span id="stat-tiempo-promedio">< 1s</span>
+                </div>
+                <div class="stat-webhook">
+                    <h4>✅ Tasa de Éxito</h4>
+                    <span id="stat-tasa-exito">100%</span>
+                </div>
+            </section>
+
+            <!-- Configuración MercadoPago (simplificada) -->
+            <div style="background: #e3f2fd; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+                <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 1rem; align-items: center;">
+                    <div>
+                        <input type="password" id="mp-access-token" placeholder="Tu Access Token de MercadoPago" style="width: 100%; padding: 0.5rem;">
+                    </div>
+                    <div>
+                        <select id="mp-environment" style="padding: 0.5rem;">
+                            <option value="sandbox">Sandbox</option>
+                            <option value="production">Producción</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button id="btn-conectar-mp" class="btn-mp" style="background: #007bff; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">🔗 Conectar MP</button>
+                    </div>
+                </div>
+                <div id="mp-status" style="text-align: center; margin-top: 0.5rem; font-weight: bold; color: #666;">
+                    🔴 Conecta MercadoPago para configurar webhooks
+                </div>
+            </div>
+
+            <!-- Configuración Webhook -->
+            <section class="webhook-config">
+                <h3>⚡ Configuración Webhook MercadoPago</h3>
+                
+                <div class="webhook-setup">
+                    <div class="webhook-field">
+                        <label>URL de tu webhook:</label>
+                        <input type="url" id="webhook-url" placeholder="https://tu-servidor.com/webhook/mercadopago" style="font-family: monospace;">
+                    </div>
+                    <div>
+                        <button id="btn-configurar-webhook" class="btn-webhook">⚡ Configurar Webhook</button>
+                    </div>
+                </div>
+
+                <div id="webhook-status" class="webhook-status">
+                    ⚡ Selecciona un método para configurar webhooks instantáneos
+                </div>
+            </section>
+
+            <!-- Métodos de Webhook -->
+            <section class="webhook-methods">
+                <!-- Método 1: ngrok (Recomendado) -->
+                <div class="webhook-method recommended" onclick="selectWebhookMethod('ngrok')">
+                    <div class="method-header">
+                        <div class="method-icon">🌐</div>
+                        <div>
+                            <h3 class="method-title">ngrok</h3>
+                            <p class="method-subtitle">Túnel local a internet</p>
+                        </div>
+                    </div>
+                    
+                    <div class="method-details">
+                        <h4>✅ Ventajas:</h4>
+                        <ul>
+                            <li>Configuración en 5 minutos</li>
+                            <li>Gratuito para desarrollo</li>
+                            <li>HTTPS automático</li>
+                            <li>Perfecto para testing</li>
+                            <li>No requiere servidor</li>
+                        </ul>
+                    </div>
+
+                    <div class="method-difficulty">
+                        <span>Dificultad:</span>
+                        <div class="difficulty-stars">⭐⭐☆☆☆</div>
+                        <span>(Fácil)</span>
+                    </div>
+                </div>
+
+                <!-- Método 2: Servidor Cloud -->
+                <div class="webhook-method" onclick="selectWebhookMethod('cloud')">
+                    <div class="method-header">
+                        <div class="method-icon">☁️</div>
+                        <div>
+                            <h3 class="method-title">Servidor Cloud</h3>
+                            <p class="method-subtitle">Heroku, Vercel, Netlify</p>
+                        </div>
+                    </div>
+                    
+                    <div class="method-details">
+                        <h4>✅ Ventajas:</h4>
+                        <ul>
+                            <li>24/7 disponible</li>
+                            <li>URLs permanentes</li>
+                            <li>Escalable</li>
+                            <li>Profesional</li>
+                            <li>Múltiples opciones</li>
+                        </ul>
+                    </div>
+
+                    <div class="method-difficulty">
+                        <span>Dificultad:</span>
+                        <div class="difficulty-stars">⭐⭐⭐☆☆</div>
+                        <span>(Media)</span>
+                    </div>
+                </div>
+
+                <!-- Método 3: Servidor Local -->
+                <div class="webhook-method" onclick="selectWebhookMethod('local')">
+                    <div class="method-header">
+                        <div class="method-icon">🖥️</div>
+                        <div>
+                            <h3 class="method-title">Servidor Local</h3>
+                            <p class="method-subtitle">Node.js + Express</p>
+                        </div>
+                    </div>
+                    
+                    <div class="method-details">
+                        <h4>✅ Ventajas:</h4>
+                        <ul>
+                            <li>Control total</li>
+                            <li>Sin costos externos</li>
+                            <li>Personalización máxima</li>
+                            <li>Debugging fácil</li>
+                            <li>Datos locales</li>
+                        </ul>
+                    </div>
+
+                    <div class="method-difficulty">
+                        <span>Dificultad:</span>
+                        <div class="difficulty-stars">⭐⭐⭐⭐☆</div>
+                        <span>(Avanzado)</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Instrucciones ngrok -->
+            <section id="setup-ngrok" class="setup-instructions active">
+                <h3>🌐 Configuración con ngrok (5 minutos)</h3>
+
+                <div class="instruction-step">
+                    <h4>1️⃣ Instalar ngrok</h4>
+                    <p>Descarga ngrok desde <strong>ngrok.com</strong></p>
+                    <div class="code-snippet">
+<span class="comment"># Windows - Descargar desde ngrok.com</span>
+<span class="comment"># O con Chocolatey:</span>
+choco install ngrok
+
+<span class="comment"># macOS con Homebrew:</span>
+brew install ngrok
+
+<span class="comment"># Linux:</span>
+wget https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip
+unzip ngrok-stable-linux-amd64.zip
+                    </div>
+                </div>
+
+                <div class="instruction-step">
+                    <h4>2️⃣ Crear servidor webhook local</h4>
+                    <div class="code-snippet">
+<span class="comment">// webhook-server.js</span>
+<span class="keyword">const</span> express = require(<span class="string">'express'</span>);
+<span class="keyword">const</span> app = express();
+
+app.use(express.json());
+
+<span class="comment">// Endpoint para recibir webhooks de MercadoPago</span>
+app.post(<span class="string">'/webhook/mercadopago'</span>, (req, res) => {
+    <span class="keyword">const</span> { body } = req;
+    
+    console.log(<span class="string">'🔔 Webhook recibido:'</span>, {
+        action: body.action,
+        data_id: body.data?.id,
+        type: body.type,
+        timestamp: <span class="keyword">new</span> Date().toISOString()
+    });
+    
+    <span class="comment">// Aquí puedes procesar el webhook</span>
+    <span class="keyword">if</span> (body.type === <span class="string">'payment'</span>) {
+        procesarPago(body.data.id);
+    }
+    
+    <span class="comment">// Responder OK a MercadoPago</span>
+    res.status(200).send(<span class="string">'OK'</span>);
+});
+
+<span class="keyword">function</span> procesarPago(paymentId) {
+    <span class="comment">// Obtener detalles del pago y enviar WhatsApp</span>
+    console.log(<span class="string">'💰 Procesando pago:'</span>, paymentId);
+    
+    <span class="comment">// Aquí conectarías con tu app principal</span>
+    <span class="comment">// fetch('http://localhost:8080/nuevo-pago', {...})</span>
+}
+
+app.listen(3000, () => {
+    console.log(<span class="string">'🚀 Webhook server corriendo en puerto 3000'</span>);
+});
+                    </div>
+                </div>
+
+                <div class="instruction-step">
+                    <h4>3️⃣ Exponer servidor con ngrok</h4>
+                    <div class="code-snippet">
+<span class="comment"># En terminal separada, ejecutar:</span>
+ngrok http 3000
+
+<span class="comment"># Verás algo como:</span>
+<span class="string">Forwarding  https://abc123.ngrok.io -> http://localhost:3000</span>
+
+<span class="comment"># Tu URL webhook será:</span>
+<span class="string">https://abc123.ngrok.io/webhook/mercadopago</span>
+                    </div>
+                </div>
+
+                <div class="instruction-step">
+                    <h4>4️⃣ Configurar en MercadoPago</h4>
+                    <p>Usar la API de MercadoPago para registrar tu webhook:</p>
+                    <div class="code-snippet">
+<span class="comment">// Registrar webhook con MercadoPago</span>
+<span class="keyword">async function</span> registrarWebhook(webhookUrl, accessToken) {
+    <span class="keyword">const</span> response = <span class="keyword">await</span> fetch(<span class="string">'https://api.mercadopago.com/v1/webhooks'</span>, {
+        method: <span class="string">'POST'</span>,
+        headers: {
+            <span class="string">'Authorization'</span>: <span class="string">`Bearer ${accessToken}`</span>,
+            <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span>
+        },
+        body: JSON.stringify({
+            url: webhookUrl,
+            events: [<span class="string">'payment'</span>, <span class="string">'merchant_order'</span>]
+        })
+    });
+    
+    <span class="keyword">return</span> response.json();
+}
+                    </div>
+                </div>
+
+                <div class="success-box">
+                    <strong>🎉 ¡Listo!</strong> Ahora recibirás notificaciones instantáneas cada vez que llegue un pago a MercadoPago.
+                </div>
+
+                <div class="warning-box">
+                    <strong>💡 Tip:</strong> ngrok es perfecto para desarrollo. Para producción considera un servidor cloud permanente.
+                </div>
+            </section>
+
+            <!-- Instrucciones Cloud -->
+            <section id="setup-cloud" class="setup-instructions">
+                <h3>☁️ Configuración con Servidor Cloud</h3>
+
+                <div class="instruction-step">
+                    <h4>1️⃣ Elegir plataforma cloud</h4>
+                    <ul>
+                        <li><strong>Heroku:</strong> Fácil, gratis hasta 550 horas/mes</li>
+                        <li><strong>Vercel:</strong> Perfecto para Node.js, gratis</li>
+                        <li><strong>Netlify Functions:</strong> Serverless, gratis</li>
+                        <li><strong>Railway:</strong> Moderno, $5/mes</li>
+                    </ul>
+                </div>
+
+                <div class="instruction-step">
+                    <h4>2️⃣ Código para Vercel (Recomendado)</h4>
+                    <div class="code-snippet">
+<span class="comment">// api/webhook.js (Vercel)</span>
+export <span class="keyword">default</span> <span class="keyword">async function</span> handler(req, res) {
+    <span class="keyword">if</span> (req.method !== <span class="string">'POST'</span>) {
+        <span class="keyword">return</span> res.status(405).json({ error: <span class="string">'Method not allowed'</span> });
+    }
+    
+    <span class="keyword">const</span> { body } = req;
+    
+    <span class="comment">// Log del webhook</span>
+    console.log(<span class="string">'🔔 Webhook MercadoPago:'</span>, {
+        action: body.action,
+        data_id: body.data?.id,
+        type: body.type
+    });
+    
+    <span class="comment">// Procesar según tipo</span>
+    <span class="keyword">if</span> (body.type === <span class="string">'payment'</span>) {
+        <span class="keyword">await</span> procesarPagoInstantaneo(body.data.id);
+    }
+    
+    res.status(200).json({ success: <span class="keyword">true</span> });
+}
+
+<span class="keyword">async function</span> procesarPagoInstantaneo(paymentId) {
+    <span class="comment">// Obtener detalles del pago</span>
+    <span class="keyword">const</span> response = <span class="keyword">await</span> fetch(
+        <span class="string">`https://api.mercadopago.com/v1/payments/${paymentId}`</span>,
+        {
+            headers: {
+                <span class="string">'Authorization'</span>: <span class="string">`Bearer ${process.env.MP_ACCESS_TOKEN}`</span>
+            }
+        }
+    );
+    
+    <span class="keyword">const</span> pago = <span class="keyword">await</span> response.json();
+    
+    <span class="comment">// Enviar WhatsApp instantáneo</span>
+    <span class="keyword">await</span> enviarWhatsAppInstantaneo(pago);
+}
+                    </div>
+                </div>
+
+                <div class="instruction-step">
+                    <h4>3️⃣ Deploy en Vercel</h4>
+                    <div class="code-snippet">
+<span class="comment"># Instalar Vercel CLI</span>
+npm i -g vercel
+
+<span class="comment"># Deploy del proyecto</span>
+vercel
+
+<span class="comment"># Tu webhook será:</span>
+<span class="string">https://tu-app.vercel.app/api/webhook</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Instrucciones Local -->
+            <section id="setup-local" class="setup-instructions">
+                <h3>🖥️ Servidor Local Completo</h3>
+
+                <div class="instruction-step">
+                    <h4>1️⃣ Instalar dependencias</h4>
+                    <div class="code-snippet">
+npm init -y
+npm install express cors dotenv
+                    </div>
+                </div>
+
+                <div class="instruction-step">
+                    <h4>2️⃣ Servidor webhook completo</h4>
+                    <div class="code-snippet">
+<span class="comment">// server.js</span>
+<span class="keyword">const</span> express = require(<span class="string">'express'</span>);
+<span class="keyword">const</span> cors = require(<span class="string">'cors'</span>);
+require(<span class="string">'dotenv'</span>).config();
+
+<span class="keyword">const</span> app = express();
+
+app.use(cors());
+app.use(express.json());
+
+<span class="comment">// Webhook MercadoPago</span>
+app.post(<span class="string">'/webhook/mercadopago'</span>, <span class="keyword">async</span> (req, res) => {
+    <span class="keyword">try</span> {
+        <span class="keyword">const</span> { body } = req;
+        
+        console.log(<span class="string">'⚡ Webhook instantáneo:'</span>, {
+            action: body.action,
+            type: body.type,
+            data_id: body.data?.id,
+            timestamp: <span class="keyword">new</span> Date().toISOString()
+        });
+        
+        <span class="comment">// Procesar inmediatamente</span>
+        <span class="keyword">if</span> (body.type === <span class="string">'payment'</span> && body.action === <span class="string">'payment.created'</span>) {
+            <span class="keyword">await</span> procesarPagoInstantaneo(body.data.id);
+        }
+        
+        res.status(200).send(<span class="string">'OK'</span>);
+    } <span class="keyword">catch</span> (error) {
+        console.error(<span class="string">'❌ Error webhook:'</span>, error);
+        res.status(500).send(<span class="string">'Error'</span>);
+    }
+});
+
+<span class="comment">// Endpoint para tu app frontend</span>
+app.post(<span class="string">'/notify-frontend'</span>, (req, res) => {
+    <span class="keyword">const</span> { pago } = req.body;
+    
+    <span class="comment">// Notificar a tu aplicación web en tiempo real</span>
+    <span class="comment">// Aquí puedes usar WebSockets, Server-Sent Events, etc.</span>
+    
+    res.json({ success: <span class="keyword">true</span> });
+});
+
+<span class="keyword">async function</span> procesarPagoInstantaneo(paymentId) {
+    <span class="keyword">try</span> {
+        <span class="comment">// Obtener detalles del pago</span>
+        <span class="keyword">const</span> response = <span class="keyword">await</span> fetch(
+            <span class="string">`https://api.mercadopago.com/v1/payments/${paymentId}`</span>,
+            {
+                headers: {
+                    <span class="string">'Authorization'</span>: <span class="string">`Bearer ${process.env.MP_ACCESS_TOKEN}`</span>
+                }
+            }
+        );
+        
+        <span class="keyword">const</span> pago = <span class="keyword">await</span> response.json();
+        
+        console.log(<span class="string">'💰 Pago procesado instantáneamente:'</span>, {
+            id: pago.id,
+            amount: pago.transaction_amount,
+            status: pago.status
+        });
+        
+        <span class="comment">// Enviar WhatsApp instantáneo</span>
+        <span class="keyword">await</span> enviarWhatsAppInstantaneo(pago);
+        
+        <span class="comment">// Notificar frontend</span>
+        <span class="keyword">await</span> notificarFrontend(pago);
+        
+    } <span class="keyword">catch</span> (error) {
+        console.error(<span class="string">'❌ Error procesando pago:'</span>, error);
+    }
+}
+
+app.listen(3000, () => {
+    console.log(<span class="string">'🚀 Servidor webhook corriendo en puerto 3000'</span>);
+});
+                    </div>
+                </div>
+            </section>
+
+            <!-- Simulador de Webhooks -->
+            <section class="webhook-simulator">
+                <h4>🧪 Simulador de Webhooks</h4>
+                <p>Prueba cómo funcionarán las notificaciones instantáneas:</p>
+                
+                <div class="simulator-controls">
+                    <button class="simulator-button" onclick="simularWebhook('payment.created')">
+                        💰 Simular Pago Recibido
+                    </button>
+                    <button class="simulator-button" onclick="simularWebhook('payment.updated')">
+                        🔄 Simular Pago Actualizado
+                    </button>
+                    <button class="simulator-button" onclick="simularWebhook('payment.cancelled')">
+                        ❌ Simular Pago Cancelado
+                    </button>
+                    <button class="simulator-button" onclick="limpiarLogs()">
+                        🗑️ Limpiar Logs
+                    </button>
+                </div>
+
+                <div class="webhook-logs" id="webhook-logs">
+                    <div class="log-entry info">
+                        📋 Logs de webhooks aparecerán aquí...
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="info-guardado">
+                <p><strong>⚡ Estado Webhooks:</strong> <span id="estado-webhooks">No configurado</span></p>
+                <p><strong>📊 Tecnología:</strong> MercadoPago Webhooks + ngrok/Cloud + WhatsApp</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Variables globales
+        let webhookConfigurado = false;
+        let mpConectado = false;
+        let accessToken = '';
+        let webhookUrl = '';
+        let metodoSeleccionado = 'ngrok';
+        
+        // Estadísticas
+        let webhooksHoy = 0;
+        let ultimaNotificacion = null;
+        let tiemposRespuesta = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            actualizarEstadisticas();
+        });
+
+        function setupEventListeners() {
+            // MercadoPago
+            document.getElementById('btn-conectar-mp').addEventListener('click', conectarMercadoPago);
+            
+            // Webhook
+            document.getElementById('btn-configurar-webhook').addEventListener('click', configurarWebhook);
+        }
+
+        async function conectarMercadoPago() {
+            const token = document.getElementById('mp-access-token').value.trim();
+            const env = document.getElementById('mp-environment').value;
+
+            if (!token) {
+                mostrarNotificacion('❌ Ingresa tu Access Token de MercadoPago', 'danger');
+                return;
+            }
+
+            accessToken = token;
+            
+            actualizarEstadoMP('connecting', '🔄 Conectando a MercadoPago...');
+
+            try {
+                const response = await fetch('https://api.mercadopago.com/v1/payments/search?sort=date_created&criteria=desc&limit=1', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    mpConectado = true;
+                    actualizarEstadoMP('online', '✅ MercadoPago conectado - Listo para webhooks');
+                    mostrarNotificacion('🎉 MercadoPago conectado - Configura webhooks', 'success');
+                } else {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+
+            } catch (error) {
+                console.error('Error conectando MercadoPago:', error);
+                actualizarEstadoMP('error', '❌ Error conectando: ' + error.message);
+                mostrarNotificacion('❌ Error de conexión: ' + error.message, 'danger');
+            }
+        }
+
+        async function configurarWebhook() {
+            const url = document.getElementById('webhook-url').value.trim();
+
+            if (!mpConectado) {
+                mostrarNotificacion('❌ Primero conecta MercadoPago', 'warning');
+                return;
+            }
+
+            if (!url) {
+                mostrarNotificacion('⚡ Ingresa la URL de tu webhook', 'warning');
+                return;
+            }
+
+            // Validar URL
+            try {
+                new URL(url);
+                if (!url.startsWith('https://')) {
+                    mostrarNotificacion('🔒 La URL debe usar HTTPS para webhooks', 'warning');
+                    return;
+                }
+            } catch {
+                mostrarNotificacion('🌐 URL inválida', 'warning');
+                return;
+            }
+
+            webhookUrl = url;
+            
+            actualizarEstadoWebhook('connecting', '⚡ Configurando webhook en MercadoPago...');
+
+            try {
+                // Registrar webhook con MercadoPago
+                const exito = await registrarWebhookMercadoPago(webhookUrl, accessToken);
+                
+                if (exito) {
+                    webhookConfigurado = true;
+                    actualizarEstadoWebhook('connected', '✅ Webhook configurado - Notificaciones instantáneas activas');
+                    mostrarNotificacion('⚡ Webhook configurado correctamente', 'success');
+                } else {
+                    actualizarEstadoWebhook('error', '❌ Error configurando webhook');
+                    mostrarNotificacion('❌ Error configurando webhook', 'danger');
+                }
+            } catch (error) {
+                console.error('Error configurando webhook:', error);
+                actualizarEstadoWebhook('error', '❌ Error: ' + error.message);
+                mostrarNotificacion('❌ Error: ' + error.message, 'danger');
+            }
+        }
+
+        async function registrarWebhookMercadoPago(webhookUrl, accessToken) {
+            try {
+                const response = await fetch('https://api.mercadopago.com/v1/webhooks', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        url: webhookUrl,
+                        events: ['payment', 'merchant_order']
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ Webhook registrado:', result);
+                    return true;
+                } else {
+                    const error = await response.json();
+                    console.error('❌ Error registrando webhook:', error);
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ Error en registro webhook:', error);
+                return false;
+            }
+        }
+
+        function selectWebhookMethod(metodo) {
+            // Remover selección previa
+            document.querySelectorAll('.webhook-method').forEach(method => {
+                method.classList.remove('selected');
+            });
+            
+            // Seleccionar nuevo método
+            event.target.closest('.webhook-method').classList.add('selected');
+            metodoSeleccionado = metodo;
+            
+            // Mostrar instrucciones correspondientes
+            document.querySelectorAll('.setup-instructions').forEach(setup => {
+                setup.classList.remove('active');
+            });
+            
+            document.getElementById('setup-' + metodo).classList.add('active');
+            
+            // Scroll a instrucciones
+            document.getElementById('setup-' + metodo).scrollIntoView({ 
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+
+        function simularWebhook(accion) {
+            const timestamp = new Date().toLocaleTimeString('es-ES');
+            webhooksHoy++;
+            ultimaNotificacion = timestamp;
+            
+            let logClass = 'info';
+            let mensaje = '';
+            
+            switch (accion) {
+                case 'payment.created':
+                    logClass = 'success';
+                    mensaje = `💰 [${timestamp}] Webhook recibido: Nuevo pago de $45,750 - Procesando instantáneamente...`;
+                    setTimeout(() => {
+                        agregarLog('success', `✅ [${timestamp}] WhatsApp enviado - Tiempo total: 0.8s`);
+                    }, 800);
+                    break;
+                    
+                case 'payment.updated':
+                    logClass = 'info';
+                    mensaje = `🔄 [${timestamp}] Webhook recibido: Pago actualizado - Estado: approved`;
+                    break;
+                    
+                case 'payment.cancelled':
+                    logClass = 'error';
+                    mensaje = `❌ [${timestamp}] Webhook recibido: Pago cancelado - Notificando...`;
+                    break;
+            }
+            
+            agregarLog(logClass, mensaje);
+            actualizarEstadisticas();
+            
+            mostrarNotificacion(`⚡ Webhook simulado: ${accion}`, 'success');
+        }
+
+        function agregarLog(tipo, mensaje) {
+            const logsContainer = document.getElementById('webhook-logs');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${tipo}`;
+            logEntry.textContent = mensaje;
+            
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+
+        function limpiarLogs() {
+            const logsContainer = document.getElementById('webhook-logs');
+            logsContainer.innerHTML = '<div class="log-entry info">📋 Logs limpiados...</div>';
+        }
+
+        function actualizarEstadisticas() {
+            document.getElementById('stat-webhooks-hoy').textContent = webhooksHoy.toString();
+            document.getElementById('stat-ultima-notif').textContent = ultimaNotificacion || '--:--';
+            
+            // Calcular tiempo promedio (simulado)
+            const tiempoPromedio = tiemposRespuesta.length > 0 
+                ? (tiemposRespuesta.reduce((a, b) => a + b, 0) / tiemposRespuesta.length).toFixed(1) + 's'
+                : '< 1s';
+            document.getElementById('stat-tiempo-promedio').textContent = tiempoPromedio;
+            
+            // Tasa de éxito (simulada)
+            const tasaExito = webhooksHoy > 0 ? '100%' : '100%';
+            document.getElementById('stat-tasa-exito').textContent = tasaExito;
+        }
+
+        function actualizarEstadoMP(estado, mensaje) {
+            const statusElement = document.getElementById('mp-status');
+            statusElement.textContent = mensaje;
+            
+            if (estado === 'online') {
+                statusElement.style.color = '#28a745';
+            } else if (estado === 'error') {
+                statusElement.style.color = '#dc3545';
+            } else {
+                statusElement.style.color = '#666';
+            }
+        }
+
+        function actualizarEstadoWebhook(estado, mensaje) {
+            const statusElement = document.getElementById('webhook-status');
+            const estadoElement = document.getElementById('estado-webhooks');
+            
+            statusElement.textContent = mensaje;
+            statusElement.className = `webhook-status ${estado}`;
+            estadoElement.textContent = mensaje.replace(/[🔄✅❌⚡]/g, '').trim();
+        }
+
+        function mostrarNotificacion(mensaje, tipo = 'success') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${tipo === 'success' ? '#4CAF50' : tipo === 'warning' ? '#ffc107' : '#dc3545'};
+                color: ${tipo === 'warning' ? '#333' : 'white'};
+                padding: 1rem;
+                border-radius: 4px;
+                z-index: 1000;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                max-width: 300px;
+            `;
+            notification.textContent = mensaje;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 4000);
+        }
+
+        // Mostrar ngrok por defecto
+        window.addEventListener('load', () => {
+            selectWebhookMethod('ngrok');
+        });
+    </script>
+</body>
+</html>

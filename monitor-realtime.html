@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Monitor Webhook en Tiempo Real</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-online { background-color: #28a745; animation: pulse 2s infinite; }
+        .status-offline { background-color: #dc3545; }
+        .status-warning { background-color: #ffc107; }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+        
+        .webhook-log {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .log-entry {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+            background: white;
+        }
+        
+        .log-success { border-left-color: #28a745; }
+        .log-error { border-left-color: #dc3545; }
+        .log-warning { border-left-color: #ffc107; }
+        
+        .timestamp {
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(45deg, #dc3545, #c82333);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(45deg, #ffc107, #e0a800);
+        }
+        
+        .connection-info {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .webhook-url {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+            word-break: break-all;
+            border: 1px solid #dee2e6;
+        }
+        
+        .test-payment {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .payment-link {
+            display: block;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .payment-link:hover {
+            background: #0056b3;
+            text-decoration: none;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>📊 Monitor Webhook MercadoPago en Tiempo Real</h1>
+    
+    <div class="container">
+        <div class="panel">
+            <h2>
+                <span id="server-status" class="status-indicator status-offline"></span>
+                Estado del Servidor
+            </h2>
+            
+            <div class="connection-info">
+                <strong>🌐 Servidor Local:</strong> http://localhost:3000<br>
+                <strong>⚡ Webhook:</strong> http://localhost:3000/webhook/mercadopago<br>
+                <strong>🔗 ngrok URL:</strong>
+                <div class="webhook-url" id="ngrok-url">
+                    https://unbrooding-transpirable-minerva.ngrok-free.dev/webhook/mercadopago
+                </div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-number" id="webhooks-received">0</span>
+                    <span class="stat-label">Webhooks Recibidos</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="uptime">--</span>
+                    <span class="stat-label">Uptime</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="last-webhook">Nunca</span>
+                    <span class="stat-label">Último Webhook</span>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <button class="btn" onclick="checkServerStatus()">🔄 Actualizar Estado</button>
+                <button class="btn btn-warning" onclick="simulateWebhook()">🧪 Simular Webhook</button>
+                <button class="btn btn-danger" onclick="clearLogs()">🗑️ Limpiar Logs</button>
+            </div>
+        </div>
+        
+        <div class="panel">
+            <h2>📱 Estado WhatsApp Twilio</h2>
+            
+            <div id="twilio-status" class="connection-info">
+                <span class="status-indicator status-warning"></span>
+                <strong>Configuración Pendiente</strong><br>
+                Sigue la guía para configurar Twilio WhatsApp
+            </div>
+            
+            <button class="btn" onclick="testTwilioConnection()">
+                🧪 Probar Conexión Twilio
+            </button>
+            
+            <div class="test-payment">
+                <h4>🎯 Prueba el Sistema Completo:</h4>
+                <p>Haz una compra de prueba para ver el webhook en acción:</p>
+                <a href="https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=3608042-ab6b8f5a-f15e-4a4c-a15d-53fa490a9642" 
+                   target="_blank" class="payment-link">
+                    💳 Hacer Compra de Prueba ($100 ARS)
+                </a>
+                <small>El webhook aparecerá automáticamente en el monitor cuando completes la compra.</small>
+            </div>
+        </div>
+        
+        <div class="panel full-width">
+            <h2>📋 Log de Webhooks en Tiempo Real</h2>
+            
+            <div class="webhook-log" id="webhook-log">
+                <div class="log-entry">
+                    <div class="timestamp">[Esperando webhooks...]</div>
+                    <div>🚀 Sistema iniciado. Esperando notificaciones de MercadoPago...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let webhookCount = 0;
+        let serverOnline = false;
+        let lastWebhookTime = null;
+        
+        // 🔄 Verificar estado del servidor
+        async function checkServerStatus() {
+            try {
+                const response = await fetch('http://localhost:3000/health');
+                if (response.ok) {
+                    const data = await response.json();
+                    serverOnline = true;
+                    
+                    document.getElementById('server-status').className = 'status-indicator status-online';
+                    document.getElementById('uptime').textContent = Math.floor(data.uptime) + 's';
+                    
+                    addLog('✅ Servidor online - Uptime: ' + Math.floor(data.uptime) + 's', 'success');
+                } else {
+                    throw new Error('Server offline');
+                }
+            } catch (error) {
+                serverOnline = false;
+                document.getElementById('server-status').className = 'status-indicator status-offline';
+                addLog('❌ Servidor offline', 'error');
+            }
+        }
+        
+        // 📝 Agregar entrada al log
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('webhook-log');
+            const timestamp = new Date().toLocaleTimeString('es-AR');
+            
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.innerHTML = `
+                <div class="timestamp">[${timestamp}]</div>
+                <div>${message}</div>
+            `;
+            
+            log.insertBefore(entry, log.firstChild);
+            
+            // Mantener solo las últimas 50 entradas
+            while (log.children.length > 50) {
+                log.removeChild(log.lastChild);
+            }
+        }
+        
+        // 🧪 Simular webhook para pruebas
+        async function simulateWebhook() {
+            try {
+                const testData = {
+                    action: 'payment.created',
+                    type: 'payment',
+                    data: { id: 'test_' + Date.now() },
+                    date_created: new Date().toISOString()
+                };
+                
+                const response = await fetch('http://localhost:3000/webhook/mercadopago', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testData)
+                });
+                
+                if (response.ok) {
+                    webhookCount++;
+                    lastWebhookTime = new Date().toLocaleTimeString('es-AR');
+                    
+                    document.getElementById('webhooks-received').textContent = webhookCount;
+                    document.getElementById('last-webhook').textContent = lastWebhookTime;
+                    
+                    addLog(`🧪 Webhook simulado: payment.created - ID: ${testData.data.id}`, 'warning');
+                } else {
+                    addLog('❌ Error simulando webhook', 'error');
+                }
+            } catch (error) {
+                addLog('❌ Error de conexión simulando webhook', 'error');
+            }
+        }
+        
+        // 🗑️ Limpiar logs
+        function clearLogs() {
+            const log = document.getElementById('webhook-log');
+            log.innerHTML = `
+                <div class="log-entry">
+                    <div class="timestamp">[${new Date().toLocaleTimeString('es-AR')}]</div>
+                    <div>🧹 Logs limpiados. Esperando nuevos webhooks...</div>
+                </div>
+            `;
+        }
+        
+        // 📱 Probar conexión Twilio
+        async function testTwilioConnection() {
+            addLog('🔍 Probando conexión Twilio...', 'info');
+            
+            // Verificar si hay credenciales configuradas
+            try {
+                const response = await fetch('http://localhost:3000/test/twilio');
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.configured) {
+                        document.getElementById('twilio-status').innerHTML = `
+                            <span class="status-indicator status-online"></span>
+                            <strong>Twilio Configurado</strong><br>
+                            Account: ${result.account_sid?.substr(0, 10)}...
+                        `;
+                        addLog('✅ Twilio configurado correctamente', 'success');
+                    } else {
+                        addLog('⚠️ Twilio no configurado. Revisa las credenciales en .env', 'warning');
+                    }
+                } else {
+                    addLog('❌ Error verificando Twilio', 'error');
+                }
+            } catch (error) {
+                addLog('⚠️ Endpoint de prueba Twilio no disponible', 'warning');
+            }
+        }
+        
+        // 🔄 Polling para webhooks reales (opcional)
+        async function pollForWebhooks() {
+            // Esta función podría consultar un endpoint que devuelva los últimos webhooks
+            // Por ahora, solo simula la verificación
+            setInterval(async () => {
+                if (serverOnline) {
+                    try {
+                        const response = await fetch('http://localhost:3000/webhook/status');
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.lastWebhook && data.lastWebhook !== lastWebhookTime) {
+                                lastWebhookTime = data.lastWebhook;
+                                webhookCount = data.totalWebhooks || webhookCount;
+                                
+                                document.getElementById('webhooks-received').textContent = webhookCount;
+                                document.getElementById('last-webhook').textContent = lastWebhookTime;
+                                
+                                addLog(`⚡ Nuevo webhook recibido: ${data.action || 'unknown'}`, 'success');
+                            }
+                        }
+                    } catch (error) {
+                        // Silencioso si el endpoint no existe
+                    }
+                }
+            }, 2000); // Verificar cada 2 segundos
+        }
+        
+        // 🚀 Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('🚀 Monitor iniciado. Verificando estado del servidor...', 'info');
+            checkServerStatus();
+            testTwilioConnection();
+            
+            // Verificar estado cada 30 segundos
+            setInterval(checkServerStatus, 30000);
+            
+            // Iniciar polling para webhooks
+            pollForWebhooks();
+        });
+    </script>
+</body>
+</html>

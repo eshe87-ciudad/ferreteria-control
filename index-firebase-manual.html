@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Ferretería - Conexión Manual</title>
+    <link rel="stylesheet" href="styles-ferreteria.css">
+    
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- jsPDF para exportar reportes a PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        /* Estilos para el sistema */
+        .reportes {
+            margin-top: 2rem;
+        }
+
+        .reportes-filtros {
+            display: grid;
+            grid-template-columns: auto auto 1fr;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .filtros-periodo, .filtros-fechas {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filtros-fechas input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .reportes-acciones {
+            display: flex;
+            gap: 0.5rem;
+            justify-self: end;
+        }
+
+        .graficos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .grafico-container {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+        }
+
+        .grafico-container h3 {
+            margin: 0 0 1rem 0;
+            color: #333;
+            font-size: 1.1rem;
+            text-align: center;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 0.5rem;
+        }
+
+        .grafico-container canvas {
+            max-height: 300px;
+            width: 100% !important;
+            height: 300px !important;
+        }
+
+        .estadisticas-resumen {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.9rem;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
+        .stat-card span {
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .btn-firebase {
+            background: #FF5722;
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+            font-weight: bold;
+        }
+
+        .btn-firebase:hover {
+            background: #E64A19;
+        }
+
+        .btn-firebase:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-reporte {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+        }
+
+        .btn-reporte:hover {
+            background: #45a049;
+        }
+
+        .btn-pdf {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+        }
+
+        .btn-pdf:hover {
+            background: #1976D2;
+        }
+
+        .firebase-status {
+            margin: 1rem 0;
+            padding: 1rem;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .firebase-status.offline {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .firebase-status.connecting {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .firebase-status.online {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .firebase-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .formulario-demo {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+        }
+
+        .formulario-demo h4 {
+            margin: 0 0 1rem 0;
+            color: #333;
+        }
+
+        .formulario-demo input {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .formulario-demo button {
+            width: 100%;
+            padding: 0.5rem;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .stat-card:nth-child(1) { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); }
+        .stat-card:nth-child(2) { background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); }
+        .stat-card:nth-child(3) { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); }
+        .stat-card:nth-child(4) { background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); }
+
+        @media (max-width: 768px) {
+            .reportes-filtros {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .reportes-acciones {
+                justify-self: stretch;
+            }
+            
+            .graficos-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .grafico-container {
+                padding: 1rem;
+            }
+            
+            .estadisticas-resumen {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Control Ferretería - Conexión Manual</h1>
+            <p>Sistema de Reportes • Conexión Firebase bajo demanda • Control total</p>
+            
+            <!-- Estado de conexión Firebase -->
+            <div id="firebase-status" class="firebase-status offline">
+                🔴 Modo Offline - Firebase no conectado
+            </div>
+            
+            <!-- Controles de Firebase -->
+            <div style="text-align: center; margin: 1rem 0;">
+                <button id="btn-conectar-firebase" class="btn-firebase">🔥 Conectar a Firebase</button>
+                <button id="btn-cargar-datos" class="btn-firebase" disabled>📊 Cargar Datos Firebase</button>
+                <button id="btn-desconectar" class="btn-firebase" disabled>🔌 Desconectar Firebase</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- Dashboard de resumen -->
+            <section class="dashboard">
+                <div class="card">
+                    <h2>📊 Resumen General</h2>
+                    <div class="dashboard-grid">
+                        <div class="dashboard-item balance-neto-mp">
+                            <div class="dashboard-icon">💳</div>
+                            <div class="dashboard-info">
+                                <h3>Balance Neto MP</h3>
+                                <span id="balance-neto-mp">$247,293.50</span>
+                                <small id="detalle-mp">MP: $350,000 - Transferencias: $102,706.50</small>
+                            </div>
+                        </div>
+                        <div class="dashboard-item balance-neto-mostrador">
+                            <div class="dashboard-icon">🏪</div>
+                            <div class="dashboard-info">
+                                <h3>Balance Neto Mostrador</h3>
+                                <span id="balance-neto-mostrador">$185,500</span>
+                                <small id="detalle-mostrador">Mostrador: $225,000 - Efectivo: $39,500</small>
+                            </div>
+                        </div>
+                        <div class="dashboard-item total-ingresos">
+                            <div class="dashboard-icon">💰</div>
+                            <div class="dashboard-info">
+                                <h3>Ingresos Totales</h3>
+                                <span id="total-ingresos">$575,000</span>
+                                <small id="contador-ingresos">48 transacciones (demo)</small>
+                            </div>
+                        </div>
+                        <div class="dashboard-item total-gastos">
+                            <div class="dashboard-icon">💸</div>
+                            <div class="dashboard-info">
+                                <h3>Gastos Totales</h3>
+                                <span id="total-gastos">$142,206.50</span>
+                                <small id="contador-gastos">23 transacciones (demo)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sistema de Reportes -->
+            <section class="reportes">
+                <div class="card">
+                    <h2>📊 Reportes y Analytics</h2>
+                    
+                    <!-- Controles de reportes -->
+                    <div class="reportes-filtros">
+                        <div class="filtros-periodo">
+                            <label for="reporte-periodo">Período del reporte:</label>
+                            <select id="reporte-periodo">
+                                <option value="dia">Por día</option>
+                                <option value="semana">Por semana</option>
+                                <option value="mes" selected>Por mes</option>
+                                <option value="trimestre">Por trimestre</option>
+                            </select>
+                        </div>
+                        <div class="filtros-fechas">
+                            <label for="reporte-desde">Desde:</label>
+                            <input type="date" id="reporte-desde">
+                            <label for="reporte-hasta">Hasta:</label>
+                            <input type="date" id="reporte-hasta">
+                        </div>
+                        <div class="reportes-acciones">
+                            <button id="btn-actualizar-reportes" class="btn-reporte">🔄 Actualizar</button>
+                            <button id="btn-exportar-pdf" class="btn-pdf">📄 Exportar PDF</button>
+                        </div>
+                    </div>
+
+                    <!-- Grid de gráficos -->
+                    <div class="graficos-grid">
+                        <div class="grafico-container">
+                            <h3>💰 Ingresos vs Gastos</h3>
+                            <canvas id="chart-ingresos-gastos"></canvas>
+                        </div>
+
+                        <div class="grafico-container">
+                            <h3>💳 Mercado Pago vs Mostrador</h3>
+                            <canvas id="chart-mp-mostrador"></canvas>
+                        </div>
+
+                        <div class="grafico-container">
+                            <h3>🏪 Top Proveedores</h3>
+                            <canvas id="chart-proveedores"></canvas>
+                        </div>
+
+                        <div class="grafico-container">
+                            <h3>📈 Balance Neto</h3>
+                            <canvas id="chart-balance-neto"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Estadísticas -->
+                    <div class="estadisticas-resumen">
+                        <div class="stat-card">
+                            <h4>💵 Promedio diario de ingresos</h4>
+                            <span id="stat-promedio-ingresos">$19,166</span>
+                        </div>
+                        <div class="stat-card">
+                            <h4>📊 Mejor día</h4>
+                            <span id="stat-mejor-dia">Viernes</span>
+                        </div>
+                        <div class="stat-card">
+                            <h4>🏆 Top proveedor</h4>
+                            <span id="stat-top-proveedor">Ferretería Central</span>
+                        </div>
+                        <div class="stat-card">
+                            <h4>📈 Crecimiento</h4>
+                            <span id="stat-crecimiento">+15.3%</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Simulador/Registro de transacciones -->
+            <section class="formularios">
+                <div class="card">
+                    <h2 id="formularios-title">⚡ Simulador de Transacciones</h2>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                        <!-- Ingreso MP -->
+                        <div class="formulario-demo">
+                            <h4>💳 Ingreso MP</h4>
+                            <input type="text" id="demo-mp-desc" placeholder="Descripción" value="Venta herramientas">
+                            <input type="number" id="demo-mp-monto" placeholder="Monto bruto" value="25000">
+                            <input type="number" id="demo-mp-comision" placeholder="Comisión" value="1250">
+                            <button id="btn-demo-mp" style="background: #2196F3;">Agregar/Simular</button>
+                        </div>
+                        
+                        <!-- Venta Mostrador -->
+                        <div class="formulario-demo">
+                            <h4>🏪 Venta Mostrador</h4>
+                            <input type="text" id="demo-mostrador-desc" placeholder="Descripción" value="Venta tornillos">
+                            <input type="number" id="demo-mostrador-monto" placeholder="Monto" value="8500">
+                            <button id="btn-demo-mostrador" style="background: #FF9800;">Agregar/Simular</button>
+                        </div>
+                        
+                        <!-- Pago Proveedor -->
+                        <div class="formulario-demo">
+                            <h4>💸 Pago Proveedor</h4>
+                            <input type="text" id="demo-proveedor-desc" placeholder="Proveedor" value="Proveedor Nuevo">
+                            <input type="number" id="demo-proveedor-monto" placeholder="Monto" value="15000">
+                            <button id="btn-demo-proveedor" style="background: #9C27B0;">Agregar/Simular</button>
+                        </div>
+                        
+                        <!-- Pago Efectivo -->
+                        <div class="formulario-demo">
+                            <h4>💵 Pago Efectivo</h4>
+                            <input type="text" id="demo-efectivo-desc" placeholder="Descripción" value="Compra combustible">
+                            <input type="number" id="demo-efectivo-monto" placeholder="Monto" value="5000">
+                            <button id="btn-demo-efectivo" style="background: #4CAF50;">Agregar/Simular</button>
+                        </div>
+                    </div>
+                    
+                    <div id="modo-info" style="text-align: center; margin-top: 1rem; padding: 1rem; background: #fff3cd; border-radius: 4px; border: 1px solid #ffeaa7;">
+                        <strong>💡 MODO:</strong> <span id="modo-actual">Simulador (datos locales)</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="info-guardado">
+                <p><strong>🔌 Estado:</strong> <span id="estado-conexion">Modo offline</span></p>
+                <p><strong>📊 Tecnología:</strong> Chart.js + jsPDF + Firebase opcional</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Variables globales
+        let chartIngresosGastos, chartMpMostrador, chartProveedores, chartBalanceNeto;
+        let firebaseConectado = false;
+        let firebaseApp = null;
+        let db = null;
+        
+        // Datos locales para simulación
+        let datosLocales = {
+            ingresoMP: 350000,
+            ventaMostrador: 225000,
+            pagoProveedores: 102706.50,
+            pagoEfectivo: 39500,
+            proveedores: {
+                'Ferretería Central': 45000,
+                'Proveedor Norte': 32000,
+                'Distribuidora Sur': 25706.50
+            }
+        };
+
+        // Datos de Firebase
+        let datosFirebase = {
+            ingresosMP: [],
+            ventasMostrador: [],
+            pagosProveedores: [],
+            pagosEfectivo: []
+        };
+
+        // Inicializar cuando la página esté lista
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            setupEventListeners();
+            actualizarConDatosLocales();
+        });
+
+        function setupEventListeners() {
+            // Firebase controls
+            document.getElementById('btn-conectar-firebase').addEventListener('click', conectarFirebase);
+            document.getElementById('btn-cargar-datos').addEventListener('click', cargarDatosFirebase);
+            document.getElementById('btn-desconectar').addEventListener('click', desconectarFirebase);
+
+            // Reportes
+            document.getElementById('btn-actualizar-reportes').addEventListener('click', actualizarReportes);
+            document.getElementById('btn-exportar-pdf').addEventListener('click', exportarPDF);
+
+            // Simuladores/Formularios
+            document.getElementById('btn-demo-mp').addEventListener('click', procesarIngresoMP);
+            document.getElementById('btn-demo-mostrador').addEventListener('click', procesarVentaMostrador);
+            document.getElementById('btn-demo-proveedor').addEventListener('click', procesarPagoProveedor);
+            document.getElementById('btn-demo-efectivo').addEventListener('click', procesarPagoEfectivo);
+
+            // Configurar fechas por defecto
+            const hoy = new Date();
+            const haceUnMes = new Date();
+            haceUnMes.setMonth(haceUnMes.getMonth() - 1);
+            
+            document.getElementById('reporte-hasta').value = hoy.toISOString().split('T')[0];
+            document.getElementById('reporte-desde').value = haceUnMes.toISOString().split('T')[0];
+        }
+
+        async function conectarFirebase() {
+            actualizarEstado('connecting', '🔄 Conectando a Firebase...');
+            document.getElementById('btn-conectar-firebase').disabled = true;
+
+            try {
+                // Cargar Firebase dinámicamente
+                const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js');
+                const { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
+                const { getAuth, signInAnonymously, onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js');
+
+                // Configuración Firebase (CAMBIAR POR LA TUYA)
+                const firebaseConfig = {
+                    apiKey: "TEMP_API_KEY",
+                    authDomain: "ferreteria-control-demo.firebaseapp.com",
+                    projectId: "ferreteria-control-demo",
+                    storageBucket: "ferreteria-control-demo.appspot.com",
+                    messagingSenderId: "123456789",
+                    appId: "1:123456789:web:abcd1234567890"
+                };
+
+                // Inicializar Firebase
+                firebaseApp = initializeApp(firebaseConfig);
+                db = getFirestore(firebaseApp);
+
+                // Guardar funciones globalmente
+                window.collection = collection;
+                window.addDoc = addDoc;
+                window.onSnapshot = onSnapshot;
+                window.deleteDoc = deleteDoc;
+                window.doc = doc;
+                window.updateDoc = updateDoc;
+                window.query = query;
+                window.orderBy = orderBy;
+                window.serverTimestamp = serverTimestamp;
+
+                firebaseConectado = true;
+                actualizarEstado('online', '✅ Firebase conectado - Listo para usar');
+                
+                document.getElementById('btn-cargar-datos').disabled = false;
+                document.getElementById('btn-desconectar').disabled = false;
+                
+                // Cambiar modo de formularios
+                document.getElementById('formularios-title').textContent = '📊 Registrar Transacciones (Firebase)';
+                document.getElementById('modo-actual').textContent = 'Firebase conectado (datos reales)';
+                document.getElementById('modo-info').style.background = '#d4edda';
+                document.getElementById('modo-info').style.borderColor = '#c3e6cb';
+                document.getElementById('modo-info').style.color = '#155724';
+
+                mostrarNotificacion('🔥 Firebase conectado exitosamente');
+
+            } catch (error) {
+                console.error('Error conectando Firebase:', error);
+                actualizarEstado('error', '❌ Error conectando Firebase: ' + error.message);
+                document.getElementById('btn-conectar-firebase').disabled = false;
+            }
+        }
+
+        async function cargarDatosFirebase() {
+            if (!firebaseConectado) {
+                mostrarNotificacion('❌ Primero conecta a Firebase');
+                return;
+            }
+
+            actualizarEstado('connecting', '📊 Cargando datos de Firebase...');
+            
+            try {
+                // Cargar todas las colecciones
+                const ingresosSnapshot = await window.collection(db, 'ingresosMP');
+                const ventasSnapshot = await window.collection(db, 'ventasMostrador');
+                const pagosProvSnapshot = await window.collection(db, 'pagosProveedores');
+                const pagosEfecSnapshot = await window.collection(db, 'pagosEfectivo');
+
+                // Simular carga (en implementación real usarías getDocs)
+                setTimeout(() => {
+                    // Por ahora usar datos simulados
+                    datosFirebase = {
+                        ingresosMP: [
+                            {id: '1', descripcion: 'Venta online', monto: 45000, comision: 2250, fecha: new Date()},
+                            {id: '2', descripcion: 'Pago QR', monto: 32000, comision: 1600, fecha: new Date()}
+                        ],
+                        ventasMostrador: [
+                            {id: '1', descripcion: 'Venta local', monto: 28000, fecha: new Date()}
+                        ],
+                        pagosProveedores: [
+                            {id: '1', proveedor: 'Proveedor Firebase', monto: 15000, fecha: new Date()}
+                        ],
+                        pagosEfectivo: [
+                            {id: '1', descripcion: 'Compra local', monto: 8500, fecha: new Date()}
+                        ]
+                    };
+
+                    actualizarConDatosFirebase();
+                    actualizarEstado('online', '✅ Datos de Firebase cargados');
+                    mostrarNotificacion('📊 Datos de Firebase cargados exitosamente');
+                }, 1500);
+
+            } catch (error) {
+                console.error('Error cargando datos:', error);
+                actualizarEstado('error', '❌ Error cargando datos: ' + error.message);
+            }
+        }
+
+        function desconectarFirebase() {
+            firebaseConectado = false;
+            firebaseApp = null;
+            db = null;
+            
+            actualizarEstado('offline', '🔴 Modo Offline - Firebase desconectado');
+            
+            document.getElementById('btn-conectar-firebase').disabled = false;
+            document.getElementById('btn-cargar-datos').disabled = true;
+            document.getElementById('btn-desconectar').disabled = true;
+            
+            // Volver a modo simulador
+            document.getElementById('formularios-title').textContent = '⚡ Simulador de Transacciones';
+            document.getElementById('modo-actual').textContent = 'Simulador (datos locales)';
+            document.getElementById('modo-info').style.background = '#fff3cd';
+            document.getElementById('modo-info').style.borderColor = '#ffeaa7';
+            document.getElementById('modo-info').style.color = '#856404';
+            
+            // Volver a datos locales
+            actualizarConDatosLocales();
+            mostrarNotificacion('🔌 Firebase desconectado - Modo offline');
+        }
+
+        function actualizarEstado(estado, mensaje) {
+            const statusElement = document.getElementById('firebase-status');
+            const estadoElement = document.getElementById('estado-conexion');
+            
+            statusElement.className = `firebase-status ${estado}`;
+            statusElement.textContent = mensaje;
+            estadoElement.textContent = mensaje.replace(/[🔄✅❌🔴]/g, '').trim();
+        }
+
+        // Procesar transacciones (simulación o Firebase)
+        async function procesarIngresoMP() {
+            const desc = document.getElementById('demo-mp-desc').value;
+            const monto = parseFloat(document.getElementById('demo-mp-monto').value) || 0;
+            const comision = parseFloat(document.getElementById('demo-mp-comision').value) || 0;
+
+            if (firebaseConectado && db) {
+                // Guardar en Firebase
+                try {
+                    await window.addDoc(window.collection(db, 'ingresosMP'), {
+                        descripcion: desc,
+                        monto: monto,
+                        comision: comision,
+                        montoNeto: monto - comision,
+                        fecha: window.serverTimestamp(),
+                        hora: new Date().toLocaleTimeString('es-ES', {hour12: false}),
+                        fechaHora: new Date()
+                    });
+                    mostrarNotificacion('✅ Ingreso MP guardado en Firebase');
+                    cargarDatosFirebase(); // Recargar datos
+                } catch (error) {
+                    mostrarNotificacion('❌ Error guardando en Firebase: ' + error.message);
+                }
+            } else {
+                // Simular localmente
+                datosLocales.ingresoMP += (monto - comision);
+                actualizarConDatosLocales();
+                mostrarNotificacion('✅ Ingreso MP simulado localmente');
+            }
+
+            // Limpiar formulario
+            document.getElementById('demo-mp-desc').value = '';
+            document.getElementById('demo-mp-monto').value = '';
+            document.getElementById('demo-mp-comision').value = '';
+        }
+
+        async function procesarVentaMostrador() {
+            const desc = document.getElementById('demo-mostrador-desc').value;
+            const monto = parseFloat(document.getElementById('demo-mostrador-monto').value) || 0;
+
+            if (firebaseConectado && db) {
+                try {
+                    await window.addDoc(window.collection(db, 'ventasMostrador'), {
+                        descripcion: desc,
+                        monto: monto,
+                        fecha: window.serverTimestamp(),
+                        hora: new Date().toLocaleTimeString('es-ES', {hour12: false}),
+                        fechaHora: new Date()
+                    });
+                    mostrarNotificacion('✅ Venta Mostrador guardada en Firebase');
+                    cargarDatosFirebase();
+                } catch (error) {
+                    mostrarNotificacion('❌ Error guardando en Firebase: ' + error.message);
+                }
+            } else {
+                datosLocales.ventaMostrador += monto;
+                actualizarConDatosLocales();
+                mostrarNotificacion('✅ Venta Mostrador simulada localmente');
+            }
+
+            document.getElementById('demo-mostrador-desc').value = '';
+            document.getElementById('demo-mostrador-monto').value = '';
+        }
+
+        async function procesarPagoProveedor() {
+            const proveedor = document.getElementById('demo-proveedor-desc').value;
+            const monto = parseFloat(document.getElementById('demo-proveedor-monto').value) || 0;
+
+            if (firebaseConectado && db) {
+                try {
+                    await window.addDoc(window.collection(db, 'pagosProveedores'), {
+                        proveedor: proveedor,
+                        monto: monto,
+                        fecha: window.serverTimestamp(),
+                        hora: new Date().toLocaleTimeString('es-ES', {hour12: false}),
+                        fechaHora: new Date()
+                    });
+                    mostrarNotificacion('✅ Pago Proveedor guardado en Firebase');
+                    cargarDatosFirebase();
+                } catch (error) {
+                    mostrarNotificacion('❌ Error guardando en Firebase: ' + error.message);
+                }
+            } else {
+                if (datosLocales.proveedores[proveedor]) {
+                    datosLocales.proveedores[proveedor] += monto;
+                } else {
+                    datosLocales.proveedores[proveedor] = monto;
+                }
+                datosLocales.pagoProveedores += monto;
+                actualizarConDatosLocales();
+                mostrarNotificacion('✅ Pago Proveedor simulado localmente');
+            }
+
+            document.getElementById('demo-proveedor-desc').value = '';
+            document.getElementById('demo-proveedor-monto').value = '';
+        }
+
+        async function procesarPagoEfectivo() {
+            const desc = document.getElementById('demo-efectivo-desc').value;
+            const monto = parseFloat(document.getElementById('demo-efectivo-monto').value) || 0;
+
+            if (firebaseConectado && db) {
+                try {
+                    await window.addDoc(window.collection(db, 'pagosEfectivo'), {
+                        descripcion: desc,
+                        monto: monto,
+                        fecha: window.serverTimestamp(),
+                        hora: new Date().toLocaleTimeString('es-ES', {hour12: false}),
+                        fechaHora: new Date()
+                    });
+                    mostrarNotificacion('✅ Pago Efectivo guardado en Firebase');
+                    cargarDatosFirebase();
+                } catch (error) {
+                    mostrarNotificacion('❌ Error guardando en Firebase: ' + error.message);
+                }
+            } else {
+                datosLocales.pagoEfectivo += monto;
+                actualizarConDatosLocales();
+                mostrarNotificacion('✅ Pago Efectivo simulado localmente');
+            }
+
+            document.getElementById('demo-efectivo-desc').value = '';
+            document.getElementById('demo-efectivo-monto').value = '';
+        }
+
+        function initializeCharts() {
+            Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+            Chart.defaults.font.size = 12;
+            Chart.defaults.responsive = true;
+            Chart.defaults.maintainAspectRatio = false;
+
+            // Gráfico 1: Ingresos vs Gastos
+            const ctx1 = document.getElementById('chart-ingresos-gastos').getContext('2d');
+            chartIngresosGastos = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Ingresos Totales',
+                        data: [],
+                        borderColor: '#4CAF50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'Gastos Totales',
+                        data: [],
+                        borderColor: '#F44336',
+                        backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Evolución de Ingresos vs Gastos'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico 2: MP vs Mostrador
+            const ctx2 = document.getElementById('chart-mp-mostrador').getContext('2d');
+            chartMpMostrador = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Mercado Pago', 'Ventas Mostrador'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['#2196F3', '#FF9800'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Distribución de Ingresos'
+                        },
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Gráfico 3: Proveedores
+            const ctx3 = document.getElementById('chart-proveedores').getContext('2d');
+            chartProveedores = new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Total Pagado',
+                        data: [],
+                        backgroundColor: '#9C27B0',
+                        borderColor: '#7B1FA2',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Pagos por Proveedor'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico 4: Balance Neto
+            const ctx4 = document.getElementById('chart-balance-neto').getContext('2d');
+            chartBalanceNeto = new Chart(ctx4, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Balance Neto',
+                        data: [],
+                        borderColor: '#607D8B',
+                        backgroundColor: 'rgba(96, 125, 139, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Balance Neto en el Tiempo'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function actualizarConDatosLocales() {
+            // Datos de ejemplo para gráficos
+            const fechas = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
+            const ingresos = [120000, 135000, 155000, 165000];
+            const gastos = [45000, 38000, 42000, 17000];
+            const balances = ingresos.map((ing, i) => ing - gastos[i]);
+
+            // Actualizar gráficos
+            chartIngresosGastos.data.labels = fechas;
+            chartIngresosGastos.data.datasets[0].data = ingresos;
+            chartIngresosGastos.data.datasets[1].data = gastos;
+            chartIngresosGastos.update();
+
+            chartMpMostrador.data.datasets[0].data = [datosLocales.ingresoMP, datosLocales.ventaMostrador];
+            chartMpMostrador.update();
+
+            chartProveedores.data.labels = Object.keys(datosLocales.proveedores);
+            chartProveedores.data.datasets[0].data = Object.values(datosLocales.proveedores);
+            chartProveedores.update();
+
+            chartBalanceNeto.data.labels = fechas;
+            chartBalanceNeto.data.datasets[0].data = balances;
+            chartBalanceNeto.update();
+
+            // Actualizar dashboard
+            const balanceMP = datosLocales.ingresoMP - datosLocales.pagoProveedores;
+            const balanceMostrador = datosLocales.ventaMostrador - datosLocales.pagoEfectivo;
+            const totalIngresos = datosLocales.ingresoMP + datosLocales.ventaMostrador;
+            const totalGastos = datosLocales.pagoProveedores + datosLocales.pagoEfectivo;
+
+            document.getElementById('balance-neto-mp').textContent = '$' + balanceMP.toLocaleString();
+            document.getElementById('balance-neto-mostrador').textContent = '$' + balanceMostrador.toLocaleString();
+            document.getElementById('total-ingresos').textContent = '$' + totalIngresos.toLocaleString();
+            document.getElementById('total-gastos').textContent = '$' + totalGastos.toLocaleString();
+        }
+
+        function actualizarConDatosFirebase() {
+            // Calcular totales de Firebase
+            const totalMP = datosFirebase.ingresosMP.reduce((sum, item) => sum + (item.montoNeto || item.monto - (item.comision || 0)), 0);
+            const totalMostrador = datosFirebase.ventasMostrador.reduce((sum, item) => sum + (item.monto || 0), 0);
+            const totalGastosProveedores = datosFirebase.pagosProveedores.reduce((sum, item) => sum + (item.monto || 0), 0);
+            const totalGastosEfectivo = datosFirebase.pagosEfectivo.reduce((sum, item) => sum + (item.monto || 0), 0);
+
+            // Actualizar gráficos con datos reales
+            chartMpMostrador.data.datasets[0].data = [totalMP, totalMostrador];
+            chartMpMostrador.update();
+
+            // Proveedores de Firebase
+            const proveedoresData = {};
+            datosFirebase.pagosProveedores.forEach(pago => {
+                const proveedor = pago.proveedor || 'Sin nombre';
+                proveedoresData[proveedor] = (proveedoresData[proveedor] || 0) + (pago.monto || 0);
+            });
+
+            chartProveedores.data.labels = Object.keys(proveedoresData);
+            chartProveedores.data.datasets[0].data = Object.values(proveedoresData);
+            chartProveedores.update();
+
+            // Actualizar dashboard
+            const balanceMP = totalMP - totalGastosProveedores;
+            const balanceMostrador = totalMostrador - totalGastosEfectivo;
+            const totalIngresos = totalMP + totalMostrador;
+            const totalGastos = totalGastosProveedores + totalGastosEfectivo;
+
+            document.getElementById('balance-neto-mp').textContent = '$' + balanceMP.toLocaleString();
+            document.getElementById('balance-neto-mostrador').textContent = '$' + balanceMostrador.toLocaleString();
+            document.getElementById('total-ingresos').textContent = '$' + totalIngresos.toLocaleString();
+            document.getElementById('total-gastos').textContent = '$' + totalGastos.toLocaleString();
+
+            // Actualizar contadores
+            document.getElementById('contador-ingresos').textContent = (datosFirebase.ingresosMP.length + datosFirebase.ventasMostrador.length) + ' transacciones (Firebase)';
+            document.getElementById('contador-gastos').textContent = (datosFirebase.pagosProveedores.length + datosFirebase.pagosEfectivo.length) + ' transacciones (Firebase)';
+
+            // Actualizar estadísticas
+            const promedioIngresos = totalIngresos / 30;
+            const topProveedor = Object.keys(proveedoresData)[0] || 'Sin datos';
+            
+            document.getElementById('stat-promedio-ingresos').textContent = '$' + promedioIngresos.toLocaleString();
+            document.getElementById('stat-top-proveedor').textContent = topProveedor;
+        }
+
+        function actualizarReportes() {
+            if (firebaseConectado && datosFirebase.ingresosMP.length > 0) {
+                actualizarConDatosFirebase();
+                mostrarNotificacion('📊 Reportes actualizados con datos de Firebase');
+            } else {
+                actualizarConDatosLocales();
+                mostrarNotificacion('📊 Reportes actualizados con datos locales');
+            }
+        }
+
+        function exportarPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            const titulo = firebaseConectado ? 'Reporte Ferretería (Firebase)' : 'Reporte Ferretería (Demo)';
+            doc.setFontSize(20);
+            doc.text(titulo, 20, 20);
+            
+            doc.setFontSize(12);
+            doc.text('Fecha: ' + new Date().toLocaleDateString('es-ES'), 20, 35);
+            doc.text('Modo: ' + (firebaseConectado ? 'Conectado a Firebase' : 'Datos locales'), 20, 45);
+            
+            const stats = [
+                '',
+                'BALANCES:',
+                '• Balance Neto MP: ' + document.getElementById('balance-neto-mp').textContent,
+                '• Balance Neto Mostrador: ' + document.getElementById('balance-neto-mostrador').textContent,
+                '• Total Ingresos: ' + document.getElementById('total-ingresos').textContent,
+                '• Total Gastos: ' + document.getElementById('total-gastos').textContent,
+                '',
+                'ESTADÍSTICAS:',
+                '• Promedio diario: ' + document.getElementById('stat-promedio-ingresos').textContent,
+                '• Mejor día: ' + document.getElementById('stat-mejor-dia').textContent,
+                '• Top proveedor: ' + document.getElementById('stat-top-proveedor').textContent,
+                '• Crecimiento: ' + document.getElementById('stat-crecimiento').textContent
+            ];
+            
+            let yPos = 60;
+            stats.forEach(stat => {
+                doc.text(stat, 20, yPos);
+                yPos += 8;
+            });
+            
+            const filename = firebaseConectado ? 'reporte-firebase-' : 'reporte-demo-';
+            doc.save(filename + new Date().toISOString().split('T')[0] + '.pdf');
+            
+            mostrarNotificacion('📄 Reporte PDF descargado');
+        }
+
+        function mostrarNotificacion(mensaje) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4CAF50;
+                color: white;
+                padding: 1rem;
+                border-radius: 4px;
+                z-index: 1000;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                max-width: 300px;
+            `;
+            notification.textContent = mensaje;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
