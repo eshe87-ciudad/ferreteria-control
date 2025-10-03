@@ -577,41 +577,62 @@ class ControlFerreteriaFirebase {
 
     // Actualizar dashboard
     updateDashboard() {
-        // Calcular totales brutos
-        const totalIngresosMP = this.ingresosMP.reduce((sum, item) => sum + (item.montoNeto || item.monto), 0);
-        const totalVentasMostrador = this.ventasMostrador.reduce((sum, item) => sum + item.monto, 0);
-        const totalPagosProveedores = this.pagosProveedores.reduce((sum, item) => sum + item.monto, 0);
+        console.log('📊 Actualizando dashboard...');
+        
+        // Calcular totales por método de pago
+        const ingresosMP = this.ingresosMP.reduce((sum, item) => sum + (item.montoNeto || item.monto), 0);
+        
+        // Ventas mostrador separadas por método
+        const ventasEfectivo = this.ventasMostrador
+            .filter(v => v.metodoPago === 'efectivo')
+            .reduce((sum, item) => sum + item.monto, 0);
+        const ventasTransferencia = this.ventasMostrador
+            .filter(v => v.metodoPago === 'transferencia')
+            .reduce((sum, item) => sum + item.monto, 0);
+        const totalVentasMostrador = ventasEfectivo + ventasTransferencia;
+        
+        // Pagos proveedores separados por método
+        const pagosProveedoresEfectivo = this.pagosProveedores
+            .filter(p => p.metodoPago === 'efectivo')
+            .reduce((sum, item) => sum + item.monto, 0);
+        const pagosProveedoresTransferencia = this.pagosProveedores
+            .filter(p => p.metodoPago === 'transferencia')
+            .reduce((sum, item) => sum + item.monto, 0);
+        const totalPagosProveedores = pagosProveedoresEfectivo + pagosProveedoresTransferencia;
+        
+        // Pagos efectivo (siempre en efectivo)
         const totalPagosEfectivo = this.pagosEfectivo.reduce((sum, item) => sum + item.monto, 0);
         
-        // BALANCES NETOS: Pagos se restan de ingresos correspondientes
-        const balanceNetoMP = totalIngresosMP - totalPagosProveedores; // MP menos pagos transferencia
-        const balanceNetoMostrador = totalVentasMostrador - totalPagosEfectivo; // Mostrador menos pagos efectivo
-        
-        const totalIngresos = totalIngresosMP + totalVentasMostrador;
-        const totalEgresos = totalPagosProveedores + totalPagosEfectivo;
-        const flujoCaja = totalIngresos - totalEgresos;
-        
-        const pendientes = this.pagosProveedores.filter(p => p.estado === 'pendiente');
-        const totalPendientes = pendientes.reduce((sum, item) => sum + item.monto, 0);
+        // Balances totales por método
+        const balanceEfectivoTotal = (ventasEfectivo) - (pagosProveedoresEfectivo + totalPagosEfectivo);
+        const balanceTransferenciasTotal = (ingresosMP + ventasTransferencia) - (pagosProveedoresTransferencia);
 
-        // Actualizar elementos del DOM con BALANCES NETOS
-        document.getElementById('total-ingresos-mp').textContent = `$${balanceNetoMP.toFixed(2)}`;
-        document.getElementById('contador-ingresos-mp').textContent = `${this.ingresosMP.length} ingresos | ${this.pagosProveedores.length} pagos`;
+        // Función para actualizar elementos de forma segura
+        const updateElement = (id, value) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            } else {
+                console.warn(`Elemento no encontrado: ${id}`);
+            }
+        };
+
+        // Actualizar dashboard con IDs correctos
+        updateElement('balance-neto-mp', `$${ingresosMP.toFixed(2)}`);
         
-        document.getElementById('total-ventas-mostrador').textContent = `$${balanceNetoMostrador.toFixed(2)}`;
-        document.getElementById('contador-ventas-mostrador').textContent = `${this.ventasMostrador.length} ventas | ${this.pagosEfectivo.length} pagos`;
+        updateElement('balance-neto-mostrador', `$${totalVentasMostrador.toFixed(2)}`);
+        updateElement('detalle-mostrador', `💵 Efectivo: $${ventasEfectivo.toFixed(2)} | 💳 Transferencia: $${ventasTransferencia.toFixed(2)}`);
         
-        document.getElementById('total-pagos-proveedores').textContent = `$${totalPagosProveedores.toFixed(2)}`;
-        document.getElementById('contador-pagos-proveedores').textContent = `${this.pagosProveedores.length} pagos transferencia`;
+        updateElement('total-pagos-proveedores', `$${totalPagosProveedores.toFixed(2)}`);
+        updateElement('detalle-pagos-proveedores', `💵 Efectivo: $${pagosProveedoresEfectivo.toFixed(2)} | 💳 Transferencia: $${pagosProveedoresTransferencia.toFixed(2)}`);
         
-        document.getElementById('total-pagos-efectivo').textContent = `$${totalPagosEfectivo.toFixed(2)}`;
-        document.getElementById('contador-pagos-efectivo').textContent = `${this.pagosEfectivo.length} pagos efectivo`;
+        updateElement('total-pagos-efectivo', `$${totalPagosEfectivo.toFixed(2)}`);
         
-        document.getElementById('flujo-caja-neto').textContent = `$${flujoCaja.toFixed(2)}`;
-        document.getElementById('estado-flujo').textContent = flujoCaja >= 0 ? 'Positivo' : 'Negativo';
+        updateElement('balance-efectivo-total', `$${balanceEfectivoTotal.toFixed(2)}`);
         
-        document.getElementById('total-pendientes').textContent = `$${totalPendientes.toFixed(2)}`;
-        document.getElementById('contador-pendientes').textContent = `${pendientes.length} facturas`;
+        updateElement('balance-transferencias-total', `$${balanceTransferenciasTotal.toFixed(2)}`);
+        
+        console.log('✅ Dashboard actualizado correctamente');
     }
 
     // Funciones auxiliares
