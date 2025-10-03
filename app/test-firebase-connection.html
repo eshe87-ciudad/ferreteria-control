@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Conexión Firebase</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        
+        #log {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔥 Test de Conexión Firebase</h1>
+    <p>Verificando conexión con ferreteriajym-gastos...</p>
+    
+    <div id="status-firebase" class="status info">🔄 Inicializando Firebase...</div>
+    <div id="status-auth" class="status info">⏳ Esperando autenticación...</div>
+    <div id="status-firestore" class="status info">⏳ Esperando Firestore...</div>
+    
+    <h3>📋 Log de depuración:</h3>
+    <div id="log"></div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            onSnapshot,
+            connectFirestoreEmulator 
+        } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+        import { 
+            getAuth, 
+            signInAnonymously, 
+            onAuthStateChanged 
+        } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
+
+        // Función para logging
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('log');
+            const typeIcon = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+            logElement.textContent += `[${timestamp}] ${typeIcon} ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function updateStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+
+        // Configuración Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBLsMp8nAxD4drtgHR16mdL_LZ2L2OOVsE",
+            authDomain: "ferreteriajym-gastos.firebaseapp.com",
+            projectId: "ferreteriajym-gastos",
+            storageBucket: "ferreteriajym-gastos.firebasestorage.app",
+            messagingSenderId: "346093684971",
+            appId: "1:346093684971:web:a51f3a7a0b185c724516ae",
+            measurementId: "G-PBYPPL86MH"
+        };
+
+        try {
+            log('Inicializando Firebase...');
+            const app = initializeApp(firebaseConfig);
+            updateStatus('status-firebase', '✅ Firebase inicializado correctamente', 'success');
+            log('Firebase inicializado exitosamente', 'success');
+
+            // Inicializar Auth
+            log('Configurando autenticación...');
+            const auth = getAuth(app);
+            
+            // Inicializar Firestore
+            log('Configurando Firestore...');
+            const db = getFirestore(app);
+
+            // Probar autenticación
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    log(`Usuario autenticado: ${user.uid}`, 'success');
+                    updateStatus('status-auth', '✅ Autenticación exitosa: ' + user.uid.substring(0, 8) + '...', 'success');
+                    
+                    // Probar Firestore
+                    testFirestore(db);
+                } else {
+                    log('No hay usuario autenticado, intentando autenticación anónima...');
+                    updateStatus('status-auth', '🔄 Intentando autenticación anónima...', 'warning');
+                    
+                    signInAnonymously(auth)
+                        .then(() => {
+                            log('Autenticación anónima iniciada', 'success');
+                        })
+                        .catch((error) => {
+                            log(`Error en autenticación anónima: ${error.message}`, 'error');
+                            updateStatus('status-auth', '❌ Error: ' + error.message, 'error');
+                        });
+                }
+            });
+
+        } catch (error) {
+            log(`Error inicializando Firebase: ${error.message}`, 'error');
+            updateStatus('status-firebase', '❌ Error: ' + error.message, 'error');
+        }
+
+        async function testFirestore(db) {
+            try {
+                log('Probando conexión a Firestore...');
+                updateStatus('status-firestore', '🔄 Probando conexión a Firestore...', 'warning');
+
+                // Intentar leer una colección
+                const testCollection = collection(db, 'test-connection');
+                
+                const unsubscribe = onSnapshot(testCollection, 
+                    (snapshot) => {
+                        log(`Firestore conectado. Documentos en test-connection: ${snapshot.size}`, 'success');
+                        updateStatus('status-firestore', '✅ Firestore conectado correctamente', 'success');
+                        
+                        // Intentar escribir un documento de prueba
+                        addDoc(testCollection, {
+                            timestamp: new Date(),
+                            test: 'connection-test',
+                            message: 'Prueba de conexión exitosa'
+                        }).then(() => {
+                            log('Documento de prueba creado exitosamente', 'success');
+                        }).catch((error) => {
+                            log(`Error creando documento: ${error.message}`, 'error');
+                        });
+                        
+                        unsubscribe();
+                    },
+                    (error) => {
+                        log(`Error conectando a Firestore: ${error.message}`, 'error');
+                        updateStatus('status-firestore', '❌ Error: ' + error.message, 'error');
+                    }
+                );
+
+            } catch (error) {
+                log(`Error en test de Firestore: ${error.message}`, 'error');
+                updateStatus('status-firestore', '❌ Error: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
