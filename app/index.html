@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Ferretería - Proveedores y Mercado Pago</title>
+    <link rel="stylesheet" href="styles-ferreteria.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Control Ferretería</h1>
+            <p>Gestión de Proveedores y Pagos • Ingresos Mercado Pago</p>
+        </header>
+
+        <main>
+            <!-- Panel de control principal -->
+            <section class="dashboard">
+                <div class="card dashboard-card">
+                    <h2>📊 Resumen del Negocio</h2>
+                    <div class="dashboard-grid">
+                        <div class="dashboard-item ingresos-mp">
+                            <div class="dashboard-icon">💳</div>
+                            <div class="dashboard-info">
+                                <h3>Ingresos Mercado Pago</h3>
+                                <span id="total-ingresos-mp">$0</span>
+                                <small id="contador-ingresos-mp">0 transacciones</small>
+                            </div>
+                        </div>
+                        <div class="dashboard-item ventas-mostrador">
+                            <div class="dashboard-icon">🛒</div>
+                            <div class="dashboard-info">
+                                <h3>Ventas Mostrador</h3>
+                                <span id="total-ventas-mostrador">$0</span>
+                                <small id="contador-ventas-mostrador">0 ventas</small>
+                            </div>
+                        </div>
+                        <div class="dashboard-item pagos-proveedores">
+                            <div class="dashboard-icon">🏪</div>
+                            <div class="dashboard-info">
+                                <h3>Pagos Transferencia</h3>
+                                <span id="total-pagos-proveedores">$0</span>
+                                <small id="contador-pagos-proveedores">0 pagos</small>
+                            </div>
+                        </div>
+                        <div class="dashboard-item pagos-efectivo">
+                            <div class="dashboard-icon">💵</div>
+                            <div class="dashboard-info">
+                                <h3>Pagos en Efectivo</h3>
+                                <span id="total-pagos-efectivo">$0</span>
+                                <small id="contador-pagos-efectivo">0 pagos</small>
+                            </div>
+                        </div>
+                        <div class="dashboard-item flujo-caja">
+                            <div class="dashboard-icon">💰</div>
+                            <div class="dashboard-info">
+                                <h3>Flujo de Caja</h3>
+                                <span id="flujo-caja-neto">$0</span>
+                                <small id="estado-flujo">Balance actual</small>
+                            </div>
+                        </div>
+                        <div class="dashboard-item pendientes">
+                            <div class="dashboard-icon">⏰</div>
+                            <div class="dashboard-info">
+                                <h3>Pagos Pendientes</h3>
+                                <span id="total-pendientes">$0</span>
+                                <small id="contador-pendientes">0 facturas</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Filtros por fecha -->
+            <section class="filtros-fecha">
+                <div class="card">
+                    <h2>📅 Filtros por Período</h2>
+                    <div class="filtros-grid">
+                        <div class="filtro-grupo">
+                            <label for="fecha-desde">Desde:</label>
+                            <input type="date" id="fecha-desde" name="fecha-desde">
+                        </div>
+                        <div class="filtro-grupo">
+                            <label for="fecha-hasta">Hasta:</label>
+                            <input type="date" id="fecha-hasta" name="fecha-hasta">
+                        </div>
+                        <div class="filtro-grupo">
+                            <label for="periodo-rapido">Período rápido:</label>
+                            <select id="periodo-rapido">
+                                <option value="">Personalizado</option>
+                                <option value="hoy">Hoy</option>
+                                <option value="ayer">Ayer</option>
+                                <option value="semana">Esta semana</option>
+                                <option value="mes">Este mes</option>
+                                <option value="mes-anterior">Mes anterior</option>
+                            </select>
+                        </div>
+                        <div class="filtro-grupo">
+                            <button id="btn-aplicar-filtros" class="btn-filtrar">Aplicar Filtros</button>
+                            <button id="btn-limpiar-filtros" class="btn-limpiar">Limpiar</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Formularios de registro -->
+            <div class="formularios-grid-expandida">
+                <!-- Ingresos Mercado Pago -->
+                <section class="formulario-mp">
+                    <div class="card">
+                        <h2>💳 Registrar Ingreso Mercado Pago</h2>
+                        <form id="form-ingreso-mp">
+                            <div class="form-group">
+                                <label for="mp-descripcion">Descripción de la venta:</label>
+                                <input type="text" id="mp-descripcion" name="mp-descripcion" required 
+                                       placeholder="Ej: Venta mostrador, Herramientas varias...">
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="mp-monto">Monto:</label>
+                                    <input type="number" id="mp-monto" name="mp-monto" step="0.01" required placeholder="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="mp-comision">Comisión MP:</label>
+                                    <input type="number" id="mp-comision" name="mp-comision" step="0.01" placeholder="0.00">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="mp-categoria">Categoría:</label>
+                                    <select id="mp-categoria" name="mp-categoria" required>
+                                        <option value="">Seleccionar...</option>
+                                        <option value="Herramientas manuales">Herramientas manuales</option>
+                                        <option value="Herramientas eléctricas">Herramientas eléctricas</option>
+                                        <option value="Materiales construcción">Materiales construcción</option>
+                                        <option value="Pinturas y barnices">Pinturas y barnices</option>
+                                        <option value="Ferretería general">Ferretería general</option>
+                                        <option value="Electricidad">Electricidad</option>
+                                        <option value="Plomería">Plomería</option>
+                                        <option value="Jardín y exterior">Jardín y exterior</option>
+                                        <option value="Seguridad">Seguridad</option>
+                                        <option value="Otros">Otros</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="mp-cliente">Cliente (opcional):</label>
+                                    <input type="text" id="mp-cliente" name="mp-cliente" placeholder="Nombre del cliente">
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn-registrar btn-ingreso">💳 Registrar Ingreso MP</button>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- Ventas de Mostrador -->
+                <section class="formulario-mostrador">
+                    <div class="card">
+                        <h2>🛒 Registrar Venta de Mostrador</h2>
+                        <form id="form-venta-mostrador">
+                            <div class="form-group">
+                                <label for="most-descripcion">Descripción de la venta:</label>
+                                <input type="text" id="most-descripcion" name="most-descripcion" required 
+                                       placeholder="Ej: Venta de herramientas, Materiales varios...">
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="most-monto">Monto total:</label>
+                                    <input type="number" id="most-monto" name="most-monto" step="0.01" required placeholder="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="most-metodo-pago">Método de pago:</label>
+                                    <select id="most-metodo-pago" name="most-metodo-pago" required>
+                                        <option value="">Seleccionar...</option>
+                                        <option value="Efectivo">💵 Efectivo</option>
+                                        <option value="Débito">💳 Débito</option>
+                                        <option value="Crédito">💳 Crédito</option>
+                                        <option value="Transferencia">🏦 Transferencia</option>
+                                        <option value="Mixto">🔄 Mixto</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="most-categoria">Categoría:</label>
+                                    <select id="most-categoria" name="most-categoria" required>
+                                        <option value="">Seleccionar...</option>
+                                        <option value="Herramientas manuales">Herramientas manuales</option>
+                                        <option value="Herramientas eléctricas">Herramientas eléctricas</option>
+                                        <option value="Materiales construcción">Materiales construcción</option>
+                                        <option value="Pinturas y barnices">Pinturas y barnices</option>
+                                        <option value="Ferretería general">Ferretería general</option>
+                                        <option value="Electricidad">Electricidad</option>
+                                        <option value="Plomería">Plomería</option>
+                                        <option value="Jardín y exterior">Jardín y exterior</option>
+                                        <option value="Seguridad">Seguridad</option>
+                                        <option value="Otros">Otros</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="most-cliente">Cliente (opcional):</label>
+                                    <input type="text" id="most-cliente" name="most-cliente" placeholder="Nombre del cliente">
+                                </div>
+                            </div>
+
+                            <div class="form-group" id="monto-mixto-group" style="display: none;">
+                                <label for="most-monto-efectivo">Monto en efectivo:</label>
+                                <input type="number" id="most-monto-efectivo" name="most-monto-efectivo" step="0.01" placeholder="0.00">
+                                <small>El resto se considera tarjeta/transferencia</small>
+                            </div>
+
+                            <button type="submit" class="btn-registrar btn-mostrador">🛒 Registrar Venta Mostrador</button>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- Pagos a Proveedores -->
+                <section class="formulario-proveedores">
+                    <div class="card">
+                        <h2>🏪 Registrar Pago a Proveedor (Transferencia)</h2>
+                        <form id="form-pago-proveedor">
+                            <div class="form-group">
+                                <label for="prov-nombre">Proveedor:</label>
+                                <input type="text" id="prov-nombre" name="prov-nombre" required 
+                                       placeholder="Nombre del proveedor" list="proveedores-list">
+                                <datalist id="proveedores-list">
+                                    <!-- Se llena dinámicamente -->
+                                </datalist>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="prov-concepto">Concepto/Productos:</label>
+                                <textarea id="prov-concepto" name="prov-concepto" required 
+                                          placeholder="Detalle de la compra o servicio..."></textarea>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="prov-monto">Monto:</label>
+                                    <input type="number" id="prov-monto" name="prov-monto" step="0.01" required placeholder="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="prov-metodo">Método de pago:</label>
+                                    <select id="prov-metodo" name="prov-metodo" required>
+                                        <option value="">Seleccionar...</option>
+                                        <option value="Efectivo">Efectivo</option>
+                                        <option value="Transferencia">Transferencia</option>
+                                        <option value="Cheque">Cheque</option>
+                                        <option value="Débito">Débito</option>
+                                        <option value="Crédito">Crédito</option>
+                                        <option value="Cuenta corriente">Cuenta corriente</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="prov-categoria">Categoría:</label>
+                                    <select id="prov-categoria" name="prov-categoria" required>
+                                        <option value="">Seleccionar...</option>
+                                        <option value="Mercadería">Mercadería</option>
+                                        <option value="Servicios">Servicios</option>
+                                        <option value="Equipamiento">Equipamiento</option>
+                                        <option value="Mantenimiento">Mantenimiento</option>
+                                        <option value="Alquiler">Alquiler</option>
+                                        <option value="Otros gastos">Otros gastos</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="prov-estado">Estado:</label>
+                                    <select id="prov-estado" name="prov-estado" required>
+                                        <option value="Pagado">✅ Pagado</option>
+                                        <option value="Pendiente">⏰ Pendiente</option>
+                                        <option value="Vencido">🔴 Vencido</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group" id="fecha-vencimiento-group" style="display: none;">
+                                <label for="prov-vencimiento">Fecha de vencimiento:</label>
+                                <input type="date" id="prov-vencimiento" name="prov-vencimiento">
+                            </div>
+
+                            <button type="submit" class="btn-registrar btn-pago">🏪 Registrar Pago</button>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- Pagos en Efectivo -->
+                <section class="formulario-efectivo">
+                    <div class="card">
+                        <h2>💵 Registrar Pago en Efectivo</h2>
+                        <form id="form-pago-efectivo">
+                            <div class="form-group">
+                                <label for="efec-proveedor">Proveedor:</label>
+                                <input type="text" id="efec-proveedor" name="efec-proveedor" required 
+                                       placeholder="Nombre del proveedor" list="proveedores-list">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="efec-concepto">Concepto/Productos:</label>
+                                <textarea id="efec-concepto" name="efec-concepto" required 
+                                          placeholder="Detalle de la compra o servicio..."></textarea>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="efec-monto">Monto:</label>
+                                    <input type="number" id="efec-monto" name="efec-monto" step="0.01" required placeholder="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="efec-categoria">Categoría:</label>
+                                    <select id="efec-categoria" name="efec-categoria" required>
+                                        <option value="">Seleccionar...</option>
+                                        <option value="Mercadería">Mercadería</option>
+                                        <option value="Servicios">Servicios</option>
+                                        <option value="Equipamiento">Equipamiento</option>
+                                        <option value="Mantenimiento">Mantenimiento</option>
+                                        <option value="Gastos operativos">Gastos operativos</option>
+                                        <option value="Otros gastos">Otros gastos</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="efec-recibido-por">Recibido por:</label>
+                                    <input type="text" id="efec-recibido-por" name="efec-recibido-por" 
+                                           placeholder="Persona que recibió el pago">
+                                </div>
+                                <div class="form-group">
+                                    <label for="efec-comprobante">N° Comprobante:</label>
+                                    <input type="text" id="efec-comprobante" name="efec-comprobante" 
+                                           placeholder="Factura, recibo, etc.">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="efec-notas">Notas adicionales:</label>
+                                <textarea id="efec-notas" name="efec-notas" rows="3" 
+                                          placeholder="Observaciones, condiciones especiales, etc."></textarea>
+                            </div>
+
+                            <button type="submit" class="btn-registrar btn-efectivo">💵 Registrar Pago Efectivo</button>
+                        </form>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Listas de transacciones -->
+            <div class="listas-grid-expandida">
+                <!-- Lista Ingresos MP -->
+                <section class="lista-mp">
+                    <div class="card">
+                        <h2>💳 Últimos Ingresos Mercado Pago</h2>
+                        <div class="lista-header">
+                            <button class="btn-ver-todos" data-tipo="mp">Ver todos</button>
+                        </div>
+                        <div id="lista-ingresos-mp" class="lista-transacciones">
+                            <p class="sin-datos">No hay ingresos registrados</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Lista Ventas Mostrador -->
+                <section class="lista-mostrador">
+                    <div class="card">
+                        <h2>🛒 Últimas Ventas de Mostrador</h2>
+                        <div class="lista-header">
+                            <button class="btn-ver-todos" data-tipo="mostrador">Ver todos</button>
+                        </div>
+                        <div id="lista-ventas-mostrador" class="lista-transacciones">
+                            <p class="sin-datos">No hay ventas registradas</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Lista Pagos Proveedores -->
+                <section class="lista-proveedores">
+                    <div class="card">
+                        <h2>🏪 Últimos Pagos Transferencia</h2>
+                        <div class="lista-header">
+                            <button class="btn-ver-todos" data-tipo="proveedores">Ver todos</button>
+                            <button class="btn-solo-pendientes">Solo pendientes</button>
+                        </div>
+                        <div id="lista-pagos-proveedores" class="lista-transacciones">
+                            <p class="sin-datos">No hay pagos registrados</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Lista Pagos Efectivo -->
+                <section class="lista-efectivo">
+                    <div class="card">
+                        <h2>💵 Últimos Pagos en Efectivo</h2>
+                        <div class="lista-header">
+                            <button class="btn-ver-todos" data-tipo="efectivo">Ver todos</button>
+                        </div>
+                        <div id="lista-pagos-efectivo" class="lista-transacciones">
+                            <p class="sin-datos">No hay pagos en efectivo registrados</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Reportes y estadísticas -->
+            <section class="reportes">
+                <div class="card">
+                    <h2>📈 Reportes y Análisis</h2>
+                    <div class="reportes-grid">
+                        <div class="reporte-item">
+                            <h3>Top Proveedores</h3>
+                            <div id="top-proveedores" class="reporte-contenido">
+                                <p class="sin-datos">No hay datos suficientes</p>
+                            </div>
+                        </div>
+                        <div class="reporte-item">
+                            <h3>Categorías más vendidas</h3>
+                            <div id="categorias-vendidas" class="reporte-contenido">
+                                <p class="sin-datos">No hay datos suficientes</p>
+                            </div>
+                        </div>
+                        <div class="reporte-item">
+                            <h3>Rendimiento mensual</h3>
+                            <div id="rendimiento-mensual" class="reporte-contenido">
+                                <p class="sin-datos">No hay datos suficientes</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="info-guardado">
+                <span id="indicador-guardado">Datos guardados en el navegador</span>
+            </div>
+            <div class="acciones-footer">
+                <button id="btn-exportar-excel" class="btn-accion">📊 Exportar Excel</button>
+                <button id="btn-backup" class="btn-accion" onclick="crearBackupManual()">💾 Crear Backup</button>
+                <button id="btn-exportar-backup" class="btn-accion" onclick="exportarBackupActual()">📤 Exportar Backup</button>
+                <button id="btn-ver-backups" class="btn-accion" onclick="mostrarBackups()">📦 Ver Backups</button>
+                <button id="btn-importar" class="btn-accion">📥 Importar Datos</button>
+                <button id="btn-reset-completo" class="btn-accion-peligro" onclick="confirmarReset()">� RESET COMPLETO</button>
+                <button id="btn-reset-avanzado" class="btn-accion" onclick="window.open('reset-sistema.html', '_blank')">⚙️ Reset Avanzado</button>
+            </div>
+            <input type="file" id="input-importar" accept=".json" style="display: none;">
+        </footer>
+    </div>
+
+    <script src="script-ferreteria.js"></script>
+    <script src="sistema-backup-reset.js"></script>
+</body>
+</html>
