@@ -36,7 +36,7 @@ class ControlFerreteriaFirebase {
         this.unsubscribePagosProveedores = null;
         this.unsubscribePagosEfectivo = null;
         
-        this.syncStatus = document.getElementById('sync-status');
+        this.syncIndicator = document.getElementById('sync-indicator');
         this.connectionStatus = document.getElementById('connection-status');
         this.lastSync = document.getElementById('last-sync');
         
@@ -54,18 +54,22 @@ class ControlFerreteriaFirebase {
 
     async initializeFirebase() {
         try {
+            console.log('Inicializando Firebase...');
             // Firebase ya está inicializado en el HTML
             this.auth = getAuth();
             this.db = getFirestore();
             
+            console.log('Auth y DB obtenidos:', this.auth, this.db);
+            
             // Configurar observador de autenticación
             onAuthStateChanged(this.auth, (user) => {
                 if (user) {
+                    console.log('Usuario autenticado:', user.uid);
                     this.user = user;
                     this.updateSyncStatus('Conectado', 'success');
                     this.setupRealtimeListeners();
-                    console.log('Usuario autenticado:', user.uid);
                 } else {
+                    console.log('No hay usuario, intentando autenticación anónima...');
                     this.signInAnonymously();
                 }
             });
@@ -79,8 +83,10 @@ class ControlFerreteriaFirebase {
 
     async signInAnonymously() {
         try {
+            console.log('Intentando autenticación anónima...');
             this.updateSyncStatus('Conectando...', 'warning');
-            await signInAnonymously(this.auth);
+            const result = await signInAnonymously(this.auth);
+            console.log('Autenticación exitosa:', result.user.uid);
         } catch (error) {
             console.error('Error en autenticación:', error);
             this.updateSyncStatus('Sin conexión', 'error');
@@ -600,15 +606,18 @@ class ControlFerreteriaFirebase {
     }
 
     updateSyncStatus(message, type) {
-        if (!this.syncStatus) return;
+        if (!this.syncIndicator) return;
         
-        this.syncStatus.textContent = message;
-        this.syncStatus.className = `sync-status ${type}`;
+        // Mapear iconos según el estado
+        const iconMap = {
+            'success': '🟢',
+            'warning': '🟡', 
+            'error': '🔴'
+        };
         
-        if (this.connectionStatus) {
-            const icon = type === 'success' ? '🟢' : type === 'warning' ? '🟡' : '🔴';
-            this.connectionStatus.textContent = icon;
-        }
+        const icon = iconMap[type] || '�';
+        this.syncIndicator.textContent = `${icon} ${message}`;
+        this.syncIndicator.className = `sync-indicator ${type}`;
     }
 
     updateLastSync() {
