@@ -441,14 +441,17 @@
             </div>
             <div class="acciones-footer">
                 <button id="btn-exportar-excel" class="btn-accion">📊 Exportar Excel</button>
-                <button id="btn-backup" class="btn-accion">💾 Respaldar Datos</button>
+                <button id="btn-backup" class="btn-accion" onclick="crearBackupManual()">💾 Crear Backup</button>
+                <button id="btn-exportar-backup" class="btn-accion" onclick="exportarBackupActual()">📤 Exportar Backup</button>
+                <button id="btn-ver-backups" class="btn-accion" onclick="mostrarBackups()">📦 Ver Backups</button>
                 <button id="btn-importar" class="btn-accion">📥 Importar Datos</button>
-                <button id="btn-limpiar-todo" class="btn-accion-peligro">🗑️ Limpiar Todo</button>
+                <button id="btn-reset-completo" class="btn-accion-peligro" onclick="confirmarReset()">🔄 RESET COMPLETO</button>
             </div>
             <input type="file" id="input-importar" accept=".json" style="display: none;">
         </footer>
     </div>
 
     <script src="script-ferreteria.js"></script>
+    <script src="sistema-backup-reset.js"></script>
 </body>
 </html>

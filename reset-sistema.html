@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔄 Reset Sistema - Control Ferretería</title>
+    <link rel="stylesheet" href="styles-ferreteria.css">
+    <style>
+        .reset-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .reset-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 20px;
+        }
+        
+        .warning-box {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .danger-box {
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .success-box {
+            background: #d1fae5;
+            border: 2px solid #10b981;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        
+        .btn-large {
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+        
+        .btn-large:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .status-info {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-item {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔄 Reset Sistema Ferretería</h1>
+            <p>Herramientas de Backup y Reset Completo</p>
+        </header>
+
+        <div class="reset-container">
+            <!-- Información del sistema actual -->
+            <div class="reset-card">
+                <h2>📊 Estado Actual del Sistema</h2>
+                <div id="sistema-stats" class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-ingresos-mp">0</div>
+                        <div class="stat-label">Ingresos MP</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-ventas">0</div>
+                        <div class="stat-label">Ventas Mostrador</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-pagos-prov">0</div>
+                        <div class="stat-label">Pagos Proveedores</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-pagos-efec">0</div>
+                        <div class="stat-label">Pagos Efectivo</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-total-registros">0</div>
+                        <div class="stat-label">Total Registros</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-balance">$0</div>
+                        <div class="stat-label">Balance Neto</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acciones de Backup -->
+            <div class="reset-card">
+                <h2>💾 Gestión de Backups</h2>
+                <p>Antes de hacer cualquier cambio, asegúrate de tener un backup de tus datos.</p>
+                
+                <div class="btn-group">
+                    <button class="btn-large btn-primary" onclick="crearBackupManual()">
+                        💾 Crear Backup Ahora
+                    </button>
+                    <button class="btn-large btn-success" onclick="exportarBackupActual()">
+                        📤 Exportar Backup
+                    </button>
+                    <button class="btn-large btn-primary" onclick="mostrarBackupsDetallado()">
+                        📦 Ver Todos los Backups
+                    </button>
+                </div>
+
+                <div id="backup-status" class="status-info" style="display: none;">
+                    <h4>✅ Backup Creado Exitosamente</h4>
+                    <p id="backup-details"></p>
+                </div>
+            </div>
+
+            <!-- Warning Box -->
+            <div class="warning-box">
+                <h3>⚠️ Importante - Lee Antes de Continuar</h3>
+                <ul>
+                    <li>El <strong>RESET COMPLETO</strong> borrará todos los datos del sistema</li>
+                    <li>Se creará un backup automático antes del reset</li>
+                    <li>Esta acción es <strong>IRREVERSIBLE</strong> una vez confirmada</li>
+                    <li>El sistema quedará como recién instalado</li>
+                    <li>Podrás restaurar desde un backup si es necesario</li>
+                </ul>
+            </div>
+
+            <!-- Reset Section -->
+            <div class="reset-card">
+                <h2>🔄 Reset Completo del Sistema</h2>
+                
+                <div class="danger-box">
+                    <h3>🚨 ZONA PELIGROSA</h3>
+                    <p>Esta acción eliminará TODOS los datos del sistema. Asegúrate de tener un backup antes de continuar.</p>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn-large btn-danger" onclick="confirmarResetCompleto()">
+                        🔄 INICIAR RESET COMPLETO
+                    </button>
+                </div>
+            </div>
+
+            <!-- Acciones Adicionales -->
+            <div class="reset-card">
+                <h2>🔧 Herramientas Adicionales</h2>
+                
+                <div class="btn-group">
+                    <button class="btn-large btn-primary" onclick="window.location.href='index.html'">
+                        🏠 Volver al Sistema
+                    </button>
+                    <button class="btn-large btn-success" onclick="verificarIntegridad()">
+                        🔍 Verificar Integridad
+                    </button>
+                    <button class="btn-large btn-primary" onclick="limpiarBackupsAntiguos()">
+                        🧹 Limpiar Backups Antiguos
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script-ferreteria.js"></script>
+    <script src="sistema-backup-reset.js"></script>
+    <script>
+        let sistemaReset;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            sistemaReset = new SistemaBackupReset();
+            cargarEstadisticasActuales();
+        });
+
+        function cargarEstadisticasActuales() {
+            try {
+                const stats = calcularEstadisticasActuales();
+                
+                document.getElementById('stat-ingresos-mp').textContent = stats.ingresosMP;
+                document.getElementById('stat-ventas').textContent = stats.ventasMostrador;
+                document.getElementById('stat-pagos-prov').textContent = stats.pagosProveedores;
+                document.getElementById('stat-pagos-efec').textContent = stats.pagosEfectivo;
+                document.getElementById('stat-total-registros').textContent = stats.totalRegistros;
+                document.getElementById('stat-balance').textContent = '$' + stats.balanceNeto.toLocaleString();
+                
+            } catch (error) {
+                console.error('Error cargando estadísticas:', error);
+            }
+        }
+
+        function calcularEstadisticasActuales() {
+            const ingresosMP = JSON.parse(localStorage.getItem('ingresosMP') || '[]');
+            const ventasMostrador = JSON.parse(localStorage.getItem('ventasMostrador') || '[]');
+            const pagosProveedores = JSON.parse(localStorage.getItem('pagosProveedores') || '[]');
+            const pagosEfectivo = JSON.parse(localStorage.getItem('pagosEfectivo') || '[]');
+
+            const totalIngresos = 
+                ingresosMP.reduce((sum, item) => sum + (item.montoNeto || 0), 0) +
+                ventasMostrador.reduce((sum, item) => sum + (item.monto || 0), 0);
+
+            const totalEgresos = 
+                pagosProveedores.reduce((sum, item) => sum + (item.monto || 0), 0) +
+                pagosEfectivo.reduce((sum, item) => sum + (item.monto || 0), 0);
+
+            return {
+                ingresosMP: ingresosMP.length,
+                ventasMostrador: ventasMostrador.length,
+                pagosProveedores: pagosProveedores.length,
+                pagosEfectivo: pagosEfectivo.length,
+                totalRegistros: ingresosMP.length + ventasMostrador.length + pagosProveedores.length + pagosEfectivo.length,
+                balanceNeto: totalIngresos - totalEgresos
+            };
+        }
+
+        function confirmarResetCompleto() {
+            const stats = calcularEstadisticasActuales();
+            
+            const mensaje = `⚠️ CONFIRMACIÓN DE RESET COMPLETO\n\n` +
+                          `Datos que se borrarán:\n` +
+                          `• ${stats.ingresosMP} ingresos de MercadoPago\n` +
+                          `• ${stats.ventasMostrador} ventas de mostrador\n` +
+                          `• ${stats.pagosProveedores} pagos a proveedores\n` +
+                          `• ${stats.pagosEfectivo} pagos en efectivo\n` +
+                          `• Total: ${stats.totalRegistros} registros\n\n` +
+                          `Balance actual: $${stats.balanceNeto.toLocaleString()}\n\n` +
+                          `¿Estás COMPLETAMENTE SEGURO?`;
+
+            if (confirm(mensaje)) {
+                const segundaConfirmacion = confirm(
+                    '🔴 ÚLTIMA OPORTUNIDAD\n\n' +
+                    'Esta acción es IRREVERSIBLE.\n' +
+                    'Se creará un backup automático.\n\n' +
+                    '¿CONFIRMAS EL RESET COMPLETO?'
+                );
+
+                if (segundaConfirmacion) {
+                    ejecutarResetCompleto();
+                }
+            }
+        }
+
+        function ejecutarResetCompleto() {
+            const resultado = sistemaReset.resetCompleto();
+
+            if (resultado.success) {
+                alert('✅ RESET COMPLETADO EXITOSAMENTE\n\n' + 
+                      `Backup automático: ${resultado.backupCreado}\n\n` +
+                      'El sistema está ahora en estado inicial.\n' +
+                      'Serás redirigido al sistema principal.');
+                
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+            } else {
+                alert('❌ Error en el reset: ' + resultado.error);
+            }
+        }
+
+        function mostrarBackupsDetallado() {
+            const backups = sistemaReset.listarBackups();
+
+            if (backups.length === 0) {
+                alert('📦 No hay backups disponibles.\n\nCrea un backup antes de continuar.');
+                return;
+            }
+
+            let mensaje = '📦 BACKUPS DISPONIBLES:\n\n';
+            backups.forEach((backup, index) => {
+                const fecha = new Date(backup.fecha).toLocaleString('es-ES');
+                mensaje += `${index + 1}. ${fecha}\n`;
+                mensaje += `   📊 ${backup.estadisticas.totalRegistros} registros\n`;
+                mensaje += `   💰 Balance: $${backup.estadisticas.balanceNeto.toLocaleString()}\n`;
+                mensaje += `   📦 ${backup.tamaño}\n\n`;
+            });
+
+            mensaje += 'Usa "Exportar Backup" para descargar un archivo de respaldo.';
+            alert(mensaje);
+        }
+
+        function verificarIntegridad() {
+            try {
+                const claves = ['ingresosMP', 'ventasMostrador', 'pagosProveedores', 'pagosEfectivo'];
+                let problemas = [];
+
+                claves.forEach(clave => {
+                    try {
+                        const datos = JSON.parse(localStorage.getItem(clave) || '[]');
+                        if (!Array.isArray(datos)) {
+                            problemas.push(`${clave}: No es un array válido`);
+                        }
+                    } catch (error) {
+                        problemas.push(`${clave}: Error de JSON`);
+                    }
+                });
+
+                if (problemas.length === 0) {
+                    alert('✅ INTEGRIDAD VERIFICADA\n\nTodos los datos están en buen estado.');
+                } else {
+                    alert('⚠️ PROBLEMAS ENCONTRADOS:\n\n' + problemas.join('\n') + 
+                          '\n\nConsidera hacer un reset si hay muchos errores.');
+                }
+
+            } catch (error) {
+                alert('❌ Error verificando integridad: ' + error.message);
+            }
+        }
+
+        function limpiarBackupsAntiguos() {
+            const resultado = sistemaReset.limpiarBackupsAntiguos(3);
+            
+            if (resultado.success) {
+                alert('✅ ' + resultado.mensaje);
+            } else {
+                alert('❌ Error: ' + resultado.error);
+            }
+        }
+    </script>
+</body>
+</html>
