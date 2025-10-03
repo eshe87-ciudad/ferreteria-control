@@ -260,7 +260,152 @@
             border: 1px solid #bbdefb;
         }
 
+        /* Estilos para WhatsApp Alerts */
+        .whatsapp-config {
+            background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+            color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .whatsapp-config h3, .whatsapp-config h4 {
+            margin: 0 0 1rem 0;
+            color: white;
+        }
+
+        .whatsapp-setup {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 1rem;
+            align-items: end;
+            margin-bottom: 1.5rem;
+        }
+
+        .whatsapp-field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .whatsapp-field label {
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .whatsapp-field input {
+            padding: 0.5rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .btn-whatsapp {
+            background: #fff;
+            color: #25d366;
+            border: none;
+            padding: 0.7rem 1rem;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-whatsapp:hover {
+            background: #f0f0f0;
+            transform: translateY(-1px);
+        }
+
+        .whatsapp-alerts-config {
+            border-top: 1px solid rgba(255,255,255,0.2);
+            padding-top: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .alerts-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .switch-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255,255,255,0.3);
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        .switch input:checked + .slider {
+            background-color: #fff;
+        }
+
+        .switch input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .whatsapp-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .status-indicator {
+            font-weight: bold;
+        }
+
         @media (max-width: 768px) {
+            .whatsapp-setup {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .alerts-options {
+                grid-template-columns: 1fr;
+            }
+            
             .form-row {
                 grid-template-columns: 1fr;
                 gap: 0.5rem;
@@ -482,6 +627,70 @@
                                 </div>
                                 <button type="submit" class="btn-primary">💵 Agregar Pago</button>
                             </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Configuración WhatsApp Alerts -->
+            <section class="whatsapp-section">
+                <div class="card">
+                    <h2>📱 Alertas WhatsApp</h2>
+                    <div class="whatsapp-config">
+                        <h3>🔧 Configuración Twilio WhatsApp</h3>
+                        <div class="whatsapp-setup">
+                            <div class="whatsapp-field">
+                                <label for="twilio-sid">Account SID:</label>
+                                <input type="text" id="twilio-sid" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                            </div>
+                            <div class="whatsapp-field">
+                                <label for="twilio-token">Auth Token:</label>
+                                <input type="password" id="twilio-token" placeholder="tu_auth_token">
+                            </div>
+                            <div class="whatsapp-field">
+                                <label for="whatsapp-numero">Tu WhatsApp:</label>
+                                <input type="text" id="whatsapp-numero" placeholder="+5491123456789">
+                            </div>
+                            <button id="btn-probar-whatsapp" class="btn-whatsapp">🧪 Probar</button>
+                        </div>
+                        
+                        <div class="whatsapp-alerts-config">
+                            <h4>⚡ Alertas Automáticas</h4>
+                            <div class="alerts-options">
+                                <label class="switch-label">
+                                    <span>💳 Ingresos Mercado Pago</span>
+                                    <label class="switch">
+                                        <input type="checkbox" id="alert-mp" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </label>
+                                <label class="switch-label">
+                                    <span>🏪 Ventas Mostrador</span>
+                                    <label class="switch">
+                                        <input type="checkbox" id="alert-mostrador" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </label>
+                                <label class="switch-label">
+                                    <span>💸 Pagos Proveedores</span>
+                                    <label class="switch">
+                                        <input type="checkbox" id="alert-proveedores">
+                                        <span class="slider"></span>
+                                    </label>
+                                </label>
+                                <label class="switch-label">
+                                    <span>💵 Pagos Efectivo</span>
+                                    <label class="switch">
+                                        <input type="checkbox" id="alert-efectivo">
+                                        <span class="slider"></span>
+                                    </label>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="whatsapp-status">
+                            <span id="whatsapp-status-indicator" class="status-indicator">⚪ No configurado</span>
+                            <span id="whatsapp-last-sent">Último envío: --</span>
                         </div>
                     </div>
                 </div>

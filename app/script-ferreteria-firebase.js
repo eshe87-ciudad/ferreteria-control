@@ -47,6 +47,20 @@ class ControlFerreteriaFirebase {
         this.pagosEfectivo = JSON.parse(localStorage.getItem('pagosEfectivo')) || [];
         this.proveedoresRecurrentes = JSON.parse(localStorage.getItem('proveedoresRecurrentes')) || [];
         
+        // Configuración WhatsApp
+        this.whatsappConfig = JSON.parse(localStorage.getItem('whatsappConfig')) || {
+            enabled: false,
+            twilioSid: '',
+            twilioToken: '',
+            whatsappNumber: '',
+            alerts: {
+                mp: true,
+                mostrador: true,
+                proveedores: false,
+                efectivo: false
+            }
+        };
+        
         this.initializeFirebase();
         this.setupEventListeners();
         this.startLocalBackup();
@@ -228,6 +242,12 @@ class ControlFerreteriaFirebase {
         try {
             await addDoc(collection(this.db, 'ingresosMP'), ingreso);
             
+            // Enviar alerta WhatsApp
+            await this.enviarAlertaWhatsApp('ingreso-mp', {
+                montoNeto: ingreso.montoNeto,
+                descripcion: ingreso.descripcion
+            });
+            
             // Limpiar formulario
             document.getElementById('descripcion-ingreso-mp').value = '';
             document.getElementById('monto-ingreso-mp').value = '';
@@ -280,6 +300,13 @@ class ControlFerreteriaFirebase {
         try {
             await addDoc(collection(this.db, 'ventasMostrador'), venta);
             
+            // Enviar alerta WhatsApp
+            await this.enviarAlertaWhatsApp('venta-mostrador', {
+                monto: venta.monto,
+                metodoPago: venta.metodoPago,
+                descripcion: venta.descripcion
+            });
+            
             // Limpiar formulario
             document.getElementById('mostrador-descripcion').value = '';
             document.getElementById('mostrador-monto').value = '';
@@ -329,6 +356,13 @@ class ControlFerreteriaFirebase {
 
         try {
             await addDoc(collection(this.db, 'pagosProveedores'), pago);
+            
+            // Enviar alerta WhatsApp
+            await this.enviarAlertaWhatsApp('pago-proveedor', {
+                proveedor: pago.proveedor,
+                monto: pago.monto,
+                metodoPago: pago.metodoPago
+            });
             
             // Agregar proveedor a lista recurrente
             this.agregarProveedorRecurrente(proveedor);
@@ -384,6 +418,12 @@ class ControlFerreteriaFirebase {
 
         try {
             await addDoc(collection(this.db, 'pagosEfectivo'), pago);
+            
+            // Enviar alerta WhatsApp
+            await this.enviarAlertaWhatsApp('pago-efectivo', {
+                monto: pago.monto,
+                descripcion: pago.descripcion
+            });
             
             // Limpiar formulario
             document.getElementById('proveedor-efectivo').value = '';
@@ -732,6 +772,228 @@ class ControlFerreteriaFirebase {
         window.addEventListener('offline', () => {
             this.updateSyncStatus('Sin conexión', 'error');
         });
+        
+        // Event listeners para WhatsApp
+        document.getElementById('btn-probar-whatsapp')?.addEventListener('click', () => {
+            this.probarWhatsApp();
+        });
+        
+        // Event listeners para configuración WhatsApp
+        ['twilio-sid', 'twilio-token', 'whatsapp-numero'].forEach(id => {
+            document.getElementById(id)?.addEventListener('input', () => {
+                this.guardarConfiguracionWhatsApp();
+            });
+        });
+        
+        ['alert-mp', 'alert-mostrador', 'alert-proveedores', 'alert-efectivo'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', () => {
+                this.guardarConfiguracionWhatsApp();
+            });
+        });
+        
+        // Cargar configuración WhatsApp
+        this.cargarConfiguracionWhatsApp();
+    }
+
+    // ===== FUNCIONES WHATSAPP =====
+    
+    cargarConfiguracionWhatsApp() {
+        const config = this.whatsappConfig;
+        
+        document.getElementById('twilio-sid').value = config.twilioSid || '';
+        document.getElementById('twilio-token').value = config.twilioToken || '';
+        document.getElementById('whatsapp-numero').value = config.whatsappNumber || '';
+        
+        document.getElementById('alert-mp').checked = config.alerts.mp;
+        document.getElementById('alert-mostrador').checked = config.alerts.mostrador;
+        document.getElementById('alert-proveedores').checked = config.alerts.proveedores;
+        document.getElementById('alert-efectivo').checked = config.alerts.efectivo;
+        
+        this.actualizarEstadoWhatsApp();
+    }
+
+    guardarConfiguracionWhatsApp() {
+        this.whatsappConfig = {
+            enabled: !!(document.getElementById('twilio-sid').value && 
+                       document.getElementById('twilio-token').value && 
+                       document.getElementById('whatsapp-numero').value),
+            twilioSid: document.getElementById('twilio-sid').value.trim(),
+            twilioToken: document.getElementById('twilio-token').value.trim(),
+            whatsappNumber: document.getElementById('whatsapp-numero').value.trim(),
+            alerts: {
+                mp: document.getElementById('alert-mp').checked,
+                mostrador: document.getElementById('alert-mostrador').checked,
+                proveedores: document.getElementById('alert-proveedores').checked,
+                efectivo: document.getElementById('alert-efectivo').checked
+            }
+        };
+        
+        localStorage.setItem('whatsappConfig', JSON.stringify(this.whatsappConfig));
+        this.actualizarEstadoWhatsApp();
+    }
+
+    actualizarEstadoWhatsApp() {
+        const indicator = document.getElementById('whatsapp-status-indicator');
+        const lastSent = document.getElementById('whatsapp-last-sent');
+        
+        if (this.whatsappConfig.enabled) {
+            indicator.textContent = '🟢 Configurado';
+            indicator.style.color = '#25d366';
+        } else {
+            indicator.textContent = '⚪ No configurado';
+            indicator.style.color = '#ccc';
+        }
+        
+        const ultimoEnvio = localStorage.getItem('whatsapp-last-sent');
+        lastSent.textContent = ultimoEnvio ? `Último envío: ${ultimoEnvio}` : 'Último envío: --';
+    }
+
+    async probarWhatsApp() {
+        this.guardarConfiguracionWhatsApp();
+        
+        if (!this.whatsappConfig.enabled) {
+            alert('❌ Completa todos los campos de configuración');
+            return;
+        }
+
+        const mensaje = `🧪 *PRUEBA FERRETERÍA CONTROL*
+
+¡Hola! Este es un mensaje de prueba.
+
+Si recibes esto, tu integración con WhatsApp está funcionando perfectamente!
+
+✅ Configuración exitosa
+📱 ${this.whatsappConfig.whatsappNumber}
+⏰ ${new Date().toLocaleTimeString('es-ES')}
+
+🎉 ¡Listo para recibir alertas automáticas!`;
+
+        try {
+            const exito = await this.enviarTwilioWhatsApp(mensaje);
+            if (exito) {
+                alert('🎉 ¡Mensaje de prueba enviado! Revisa tu WhatsApp');
+                localStorage.setItem('whatsapp-last-sent', new Date().toLocaleString('es-ES'));
+                this.actualizarEstadoWhatsApp();
+            } else {
+                alert('❌ Error enviando mensaje de prueba');
+            }
+        } catch (error) {
+            console.error('Error en prueba WhatsApp:', error);
+            alert('❌ Error: ' + error.message);
+        }
+    }
+
+    async enviarAlertaWhatsApp(tipo, datos) {
+        if (!this.whatsappConfig.enabled) return false;
+
+        let mensaje = '';
+        const fecha = new Date().toLocaleString('es-ES');
+        
+        switch (tipo) {
+            case 'ingreso-mp':
+                if (!this.whatsappConfig.alerts.mp) return false;
+                mensaje = `💳 *INGRESO MERCADO PAGO*
+
+💰 Monto: $${datos.montoNeto.toFixed(2)}
+📝 Descripción: ${datos.descripcion}
+⏰ ${fecha}
+
+🎉 ¡Nuevo ingreso registrado!`;
+                break;
+                
+            case 'venta-mostrador':
+                if (!this.whatsappConfig.alerts.mostrador) return false;
+                const metodoIcon = datos.metodoPago === 'efectivo' ? '💵' : '💳';
+                mensaje = `🏪 *VENTA MOSTRADOR*
+
+${metodoIcon} Monto: $${datos.monto.toFixed(2)}
+💳 Método: ${datos.metodoPago}
+📝 Descripción: ${datos.descripcion}
+⏰ ${fecha}
+
+✅ Nueva venta registrada!`;
+                break;
+                
+            case 'pago-proveedor':
+                if (!this.whatsappConfig.alerts.proveedores) return false;
+                const metodoIconProv = datos.metodoPago === 'efectivo' ? '💵' : '💳';
+                mensaje = `💸 *PAGO PROVEEDOR*
+
+🏢 Proveedor: ${datos.proveedor}
+${metodoIconProv} Monto: $${datos.monto.toFixed(2)}
+💳 Método: ${datos.metodoPago}
+⏰ ${fecha}
+
+📤 Pago registrado`;
+                break;
+                
+            case 'pago-efectivo':
+                if (!this.whatsappConfig.alerts.efectivo) return false;
+                mensaje = `💵 *PAGO EFECTIVO*
+
+💰 Monto: $${datos.monto.toFixed(2)}
+📝 Descripción: ${datos.descripcion}
+⏰ ${fecha}
+
+💸 Gasto en efectivo registrado`;
+                break;
+        }
+
+        if (mensaje) {
+            try {
+                const exito = await this.enviarTwilioWhatsApp(mensaje);
+                if (exito) {
+                    localStorage.setItem('whatsapp-last-sent', fecha);
+                    this.actualizarEstadoWhatsApp();
+                }
+                return exito;
+            } catch (error) {
+                console.error('Error enviando alerta WhatsApp:', error);
+                return false;
+            }
+        }
+        
+        return false;
+    }
+
+    async enviarTwilioWhatsApp(mensaje) {
+        const config = this.whatsappConfig;
+        
+        if (!config.twilioSid || !config.twilioToken || !config.whatsappNumber) {
+            throw new Error('Configuración incompleta');
+        }
+
+        const url = `https://api.twilio.com/2010-04-01/Accounts/${config.twilioSid}/Messages.json`;
+        
+        const formData = new URLSearchParams({
+            'From': 'whatsapp:+14155238886', // Twilio Sandbox
+            'To': `whatsapp:${config.whatsappNumber}`,
+            'Body': mensaje
+        });
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Basic ' + btoa(config.twilioSid + ':' + config.twilioToken),
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: formData
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('✅ WhatsApp enviado:', result.sid);
+                return true;
+            } else {
+                const error = await response.text();
+                console.error('❌ Error Twilio:', error);
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ Error de red:', error);
+            throw error;
+        }
     }
 
     // Cleanup al cerrar
